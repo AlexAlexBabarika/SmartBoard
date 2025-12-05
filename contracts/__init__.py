@@ -1,0 +1,2 @@
+"""NEO Smart Contracts package"""
+

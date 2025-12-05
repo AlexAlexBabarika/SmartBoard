@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.venv/
+venv/
+ENV/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables
+.env
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# Frontend
+node_modules/
+frontend/dist/
+frontend/.svelte-kit/
+frontend/build/
+.DS_Store
+
+# Contract build artifacts
+contracts/*.nef
+contracts/*.manifest.json
+contracts/*.nefdbgnfo
+
+# Temporary files
+*.tmp
+*.bak
+*.pdf
+*.html.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+

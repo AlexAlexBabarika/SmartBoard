@@ -1,0 +1,48 @@
+You are analyzing a startup investment opportunity. Based on the provided information, generate a comprehensive investment memo.
+
+STARTUP DATA:
+{startup_json}
+
+Generate a thorough investment analysis in JSON format with the following structure:
+
+{{
+  "executive_summary": "2-3 paragraph summary of the investment opportunity",
+  
+  "investment_thesis": "Detailed investment thesis explaining why this is a good/bad investment, market opportunity, competitive positioning, and growth potential",
+  
+  "swot": {{
+    "strengths": ["list of 4-6 key strengths"],
+    "weaknesses": ["list of 3-5 key weaknesses"],
+    "opportunities": ["list of 4-6 market opportunities"],
+    "threats": ["list of 3-5 key threats"]
+  }},
+  
+  "risks": [
+    {{
+      "category": "Risk category (Market/Execution/Technology/Team/Financial)",
+      "description": "Detailed description of the risk",
+      "severity": "Low/Medium/High",
+      "mitigation": "How this risk can be mitigated"
+    }}
+  ],
+  
+  "risk_score": 50,  // Overall risk score from 0 (lowest risk) to 100 (highest risk)
+  
+  "confidence_score": 75,  // Confidence in investment thesis from 0 (no confidence) to 100 (very high confidence)
+  
+  "recommendation": "Detailed investment recommendation (INVEST, PASS, or WATCH) with supporting rationale",
+  
+  "key_metrics_to_track": ["list of 4-6 key metrics to monitor post-investment"]
+}}
+
+Be thorough, analytical, and balanced in your assessment. Consider:
+- Team quality and experience
+- Product/market fit
+- Market size and growth potential
+- Competitive landscape
+- Financial metrics and unit economics
+- Use of funds and capital efficiency
+- Risks and mitigation strategies
+
+Provide specific, actionable insights rather than generic observations.
+

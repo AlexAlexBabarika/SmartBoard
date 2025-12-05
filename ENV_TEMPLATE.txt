@@ -1,0 +1,86 @@
+# AI Investment Scout DAO - Environment Variables Template
+# Copy this file's contents to create your .env file
+
+# ===========================================
+# LLM Provider Configuration
+# ===========================================
+# Get your OpenAI API key from: https://platform.openai.com/api-keys
+OPENAI_API_KEY=sk-your-openai-api-key-here
+
+# Choose your LLM provider: openai, anthropic, or local
+LLM_PROVIDER=openai
+
+# Model to use (gpt-4, gpt-3.5-turbo, claude-3-opus-20240229, etc.)
+LLM_MODEL=gpt-4
+
+# ===========================================
+# IPFS Storage Configuration
+# ===========================================
+# Get your free token at: https://web3.storage
+# Sign up, create a new token with upload permissions
+WEB3_STORAGE_KEY=your-web3-storage-api-token-here
+
+# ===========================================
+# NEO Blockchain Configuration
+# ===========================================
+# NEO testnet RPC endpoint
+NEO_RPC_URL=https://testnet1.neo.org:443
+
+# Your NEO testnet wallet private key (NEVER USE MAINNET KEYS!)
+# Get testnet GAS from: https://neowish.ngd.network/
+NEO_WALLET_PRIVATE_KEY=your-private-key-here-for-testnet-only
+
+# Deployed contract hash (set this after deploying the contract)
+NEO_CONTRACT_HASH=0x1234567890abcdef
+
+# ===========================================
+# Backend Configuration
+# ===========================================
+BACKEND_HOST=0.0.0.0
+BACKEND_PORT=8000
+
+# Database URL (SQLite for dev, PostgreSQL for production)
+DATABASE_URL=sqlite:///./proposals.db
+# For PostgreSQL: postgresql://user:password@localhost/dbname
+
+# ===========================================
+# SpoonOS Configuration
+# ===========================================
+# Path to SpoonOS config file (if using spoon-cli)
+SPOON_CLI_CONFIG=./spoon_agent/spoon.config.json
+
+# ===========================================
+# Application Mode
+# ===========================================
+# Set to 'true' to simulate blockchain and IPFS operations
+# Set to 'false' to use real APIs (requires all keys above)
+DEMO_MODE=true
+
+# ===========================================
+# Optional: Anthropic Configuration
+# ===========================================
+# If using Anthropic instead of OpenAI
+# ANTHROPIC_API_KEY=sk-ant-your-key-here
+
+# ===========================================
+# Optional: Logging Configuration
+# ===========================================
+# LOG_LEVEL=INFO
+# LOG_FILE=app.log
+
+# ===========================================
+# Optional: Security Configuration
+# ===========================================
+# JWT_SECRET=your-secret-key-for-jwt
+# API_KEY=your-api-key-for-external-access
+
+# ===========================================
+# NOTES:
+# ===========================================
+# 1. NEVER commit this file with real credentials to version control
+# 2. Use testnet keys only, never mainnet
+# 3. For production, use a secrets manager (AWS Secrets Manager, HashiCorp Vault)
+# 4. Demo mode works without any API keys (simulated operations)
+# 5. Each developer should have their own .env file
+# 6. Keep a backup of your keys in a secure location
+

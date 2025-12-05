@@ -1,0 +1,98 @@
+{
+  "name": "AI Investment Scout DAO Agent",
+  "version": "1.0.0",
+  "description": "SpoonOS agent for automated investment memo generation and DAO submission",
+  
+  "agent": {
+    "entry_point": "main.py",
+    "runtime": "python3.10",
+    "type": "task"
+  },
+  
+  "secrets": {
+    "llm": {
+      "provider": "${LLM_PROVIDER}",
+      "api_key": "${OPENAI_API_KEY}",
+      "model": "${LLM_MODEL}"
+    },
+    "ipfs": {
+      "provider": "web3.storage",
+      "api_token": "${WEB3_STORAGE_KEY}"
+    },
+    "blockchain": {
+      "network": "neo",
+      "rpc_url": "${NEO_RPC_URL}",
+      "wallet_key": "${NEO_WALLET_PRIVATE_KEY}",
+      "contract_hash": "${NEO_CONTRACT_HASH}"
+    },
+    "backend": {
+      "url": "${BACKEND_URL}"
+    }
+  },
+  
+  "connectors": {
+    "llm_connector": {
+      "type": "llm",
+      "config": {
+        "provider": "openai",
+        "temperature": 0.7,
+        "max_tokens": 4096
+      }
+    },
+    "storage_connector": {
+      "type": "ipfs",
+      "config": {
+        "provider": "web3.storage"
+      }
+    }
+  },
+  
+  "triggers": {
+    "manual": {
+      "type": "cli",
+      "description": "Run agent manually with startup data"
+    },
+    "webhook": {
+      "type": "http",
+      "endpoint": "/trigger",
+      "description": "Trigger agent via HTTP webhook"
+    }
+  },
+  
+  "outputs": {
+    "memo_pdf": {
+      "type": "file",
+      "format": "pdf",
+      "destination": "ipfs"
+    },
+    "proposal_submission": {
+      "type": "api_call",
+      "endpoint": "${BACKEND_URL}/submit-memo"
+    }
+  },
+  
+  "dependencies": [
+    "fastapi",
+    "requests",
+    "jinja2",
+    "weasyprint",
+    "python-dotenv"
+  ],
+  
+  "environment": {
+    "DEMO_MODE": "true"
+  },
+  
+  "notes": [
+    "To use this agent with SpoonOS CLI:",
+    "1. Install spoon-cli: pip install spoon-cli",
+    "2. Configure secrets: spoon secrets add --config spoon.config.json",
+    "3. Run agent: spoon run --config spoon.config.json --input startup_data.json",
+    "",
+    "To run standalone (without SpoonOS):",
+    "1. Copy .env.example to .env and fill in values",
+    "2. Run: python main.py --input startup_data.json",
+    "3. Or demo: python main.py --demo"
+  ]
+}
+
