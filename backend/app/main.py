@@ -128,7 +128,7 @@ async def submit_memo(request: SubmitMemoRequest, db: Session = Depends(get_db))
             status="active",
             yes_votes=0,
             no_votes=0,
-            metadata=request.metadata,
+            proposal_metadata=request.metadata,
             tx_hash=tx_result.get("tx_hash"),
             on_chain_id=tx_result.get("proposal_id"),
             deadline=deadline
@@ -151,7 +151,7 @@ async def submit_memo(request: SubmitMemoRequest, db: Session = Depends(get_db))
             no_votes=db_proposal.no_votes,
             created_at=db_proposal.created_at.isoformat(),
             deadline=db_proposal.deadline,
-            metadata=db_proposal.metadata
+            metadata=db_proposal.proposal_metadata
         )
         
     except Exception as e:
@@ -176,7 +176,7 @@ async def get_proposals(db: Session = Depends(get_db)):
             no_votes=p.no_votes,
             created_at=p.created_at.isoformat(),
             deadline=p.deadline,
-            metadata=p.metadata
+            metadata=p.proposal_metadata
         )
         for p in proposals
     ]
@@ -201,7 +201,7 @@ async def get_proposal(proposal_id: int, db: Session = Depends(get_db)):
         no_votes=proposal.no_votes,
         created_at=proposal.created_at.isoformat(),
         deadline=proposal.deadline,
-        metadata=proposal.metadata
+        metadata=proposal.proposal_metadata
     )
 
 

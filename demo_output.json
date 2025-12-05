@@ -1,0 +1,91 @@
+{
+  "proposal_id": 2,
+  "ipfs_cid": "bafybei560493890cc5e199c94ae75278f899420554bf4dbf3c22d1447a",
+  "memo_content": {
+    "executive_summary": "NexGenAI presents a compelling investment opportunity in the rapidly growing enterprise AI automation market. The company's proprietary algorithms offer significant performance advantages, reducing training time by 70% while maintaining accuracy. With a strong founding team from Google AI Research and MIT, along with early traction showing 15% monthly growth, the company is well-positioned to capture market share. However, the competitive landscape is intense, and execution risks remain.",
+    "investment_thesis": "The enterprise AI automation market is projected to reach $15B by 2027, representing a significant opportunity. NexGenAI's differentiated technology and AI-first approach provide a competitive moat against traditional RPA players. The founding team's deep expertise in AI research and their early customer validation demonstrate strong product-market fit potential. The company's capital efficient growth (15% MRR growth with 18 months runway) indicates prudent management and scalability.",
+    "swot": {
+      "strengths": [
+        "Proprietary AI algorithms with 70% efficiency improvement",
+        "World-class founding team (ex-Google AI, MIT PhD, ex-OpenAI)",
+        "Strong early traction: $50K MRR with 15% monthly growth",
+        "AI-first approach vs. traditional RPA incumbents",
+        "18-month runway provides adequate time for execution"
+      ],
+      "weaknesses": [
+        "Small customer base (12 customers) indicates early stage",
+        "Limited brand recognition in established market",
+        "Dependency on AI infrastructure costs",
+        "Need to scale sales and marketing capabilities"
+      ],
+      "opportunities": [
+        "Rapidly expanding enterprise AI market ($15B by 2027)",
+        "Increasing enterprise adoption of AI automation",
+        "Potential for horizontal expansion to adjacent markets",
+        "Strategic partnerships with cloud providers",
+        "International expansion opportunities"
+      ],
+      "threats": [
+        "Intense competition from well-funded incumbents (UiPath, Automation Anywhere)",
+        "Potential market saturation in enterprise automation",
+        "Rapid technological change could obsolete current approach",
+        "Economic downturn could reduce enterprise AI spending",
+        "Regulatory risks around AI usage"
+      ]
+    },
+    "risks": [
+      {
+        "category": "Market Risk",
+        "description": "Competition from established players with deeper pockets",
+        "severity": "High",
+        "mitigation": "Focus on differentiation through AI-first approach and faster iteration"
+      },
+      {
+        "category": "Execution Risk",
+        "description": "Ability to scale from 12 to 100+ customers",
+        "severity": "Medium",
+        "mitigation": "30% of funding allocated to sales & marketing expansion"
+      },
+      {
+        "category": "Technology Risk",
+        "description": "Maintaining performance advantage as competitors catch up",
+        "severity": "Medium",
+        "mitigation": "60% of funding allocated to continued R&D"
+      },
+      {
+        "category": "Team Risk",
+        "description": "Need to hire and retain top AI talent",
+        "severity": "Medium",
+        "mitigation": "Strong employer brand from founder backgrounds"
+      }
+    ],
+    "risk_score": 58,
+    "confidence_score": 78,
+    "recommendation": "INVEST with cautious optimism. NexGenAI demonstrates strong technical foundations and promising early traction. The $5M ask at $20M valuation is reasonable given current metrics and market opportunity. However, close monitoring of customer acquisition costs, retention metrics, and competitive positioning is essential. Recommend staged investment with milestones tied to customer growth targets.",
+    "key_metrics_to_track": [
+      "MRR growth rate (target: maintain >10% monthly)",
+      "Customer acquisition cost and payback period",
+      "Net revenue retention (target: >100%)",
+      "Product development velocity",
+      "Competitive win/loss analysis"
+    ]
+  },
+  "submission": {
+    "title": "Investment Memo: NexGenAI",
+    "summary": "NexGenAI presents a compelling investment opportunity in the rapidly growing enterprise AI automation market. The company's proprietary algorithms offer significant performance advantages, reducing training time by 70% while maintaining accuracy. With a strong founding team from Google AI Research and MIT, along with early traction showing 15% monthly growth, the company is well-positioned to capture market share. However, the competitive landscape is intense, and execution risks remain.",
+    "cid": "bafybei560493890cc5e199c94ae75278f899420554bf4dbf3c22d1447a",
+    "confidence": 78,
+    "metadata": {
+      "startup_name": "NexGenAI",
+      "sector": "Artificial Intelligence",
+      "stage": "Series A",
+      "risk_score": 58,
+      "swot_summary": {
+        "strengths": 5,
+        "weaknesses": 4,
+        "opportunities": 5,
+        "threats": 5
+      }
+    }
+  }
+}

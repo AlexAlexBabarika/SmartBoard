@@ -185,8 +185,21 @@
           </div>
         </div>
         
+        <!-- Demo Mode Notice -->
+        {#if proposal.ipfs_cid.startsWith('bafybei')}
+          <div class="alert alert-info mt-4">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div class="text-sm">
+              <p><strong>Demo Mode:</strong> This is a simulated IPFS CID. The PDF won't load because it wasn't actually uploaded.</p>
+              <p class="mt-1">To enable real IPFS uploads, set up a web3.storage API key in <code>.env</code> and set <code>DEMO_MODE=false</code></p>
+            </div>
+          </div>
+        {/if}
+        
         <!-- PDF Preview iframe -->
-        <div class="mt-4 border-2 border-gray-300 rounded-lg overflow-hidden" style="height: 600px;">
+        <div class="mt-4 border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center" style="height: 600px;">
           <iframe 
             src={getIpfsUrl(proposal.ipfs_cid)}
             title="Investment Memo PDF"

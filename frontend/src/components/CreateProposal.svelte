@@ -236,7 +236,7 @@
           <textarea 
             id="metadata"
             class="textarea textarea-bordered font-mono text-sm h-32" 
-            placeholder='{"sector": "tech", "stage": "series-a", "risk_score": 50}'
+            placeholder={`{"sector": "tech", "stage": "series-a", "risk_score": 50}`}
             bind:value={metadata}
           ></textarea>
           <label class="label">
