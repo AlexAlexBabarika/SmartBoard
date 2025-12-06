@@ -119,8 +119,8 @@
 
   <div class="card-pe p-6">
     <form class="space-y-6" on:submit|preventDefault={handleSubmit}>
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2 space-y-6">
+      <div class="grid grid-cols-1 gap-6">
+        <div class="space-y-6">
           <div>
             <label class="flex items-center justify-between mb-2" for="name">
               <span class="text-sm font-medium text-pe-text">Organization Name</span>
@@ -186,44 +186,6 @@
               {/if}
             </div>
             <p class="text-xs text-pe-text-dim mt-1">Preview updates instantly after selecting a file.</p>
-          </div>
-        </div>
-
-        <div class="border border-pe-border rounded-pe-lg p-4 bg-pe-card space-y-3">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-pe-text-dim">Preview</p>
-              <p class="text-sm font-medium text-pe-text">Logo</p>
-            </div>
-            {#if type}
-              <span class="px-2 py-1 rounded-pe text-xs bg-pe-accent/10 text-pe-accent">
-                {type}
-              </span>
-            {/if}
-          </div>
-
-          <div class="aspect-square rounded-pe-lg border border-dashed border-pe-border flex items-center justify-center bg-pe-bg-secondary overflow-hidden">
-            {#if logoPreview}
-              <img src={logoPreview} alt="Logo preview" class="w-full h-full object-contain" />
-            {:else}
-              <div class="text-center text-pe-text-dim text-sm space-y-1">
-                <div class="flex justify-center">
-                  <div class="w-12 h-12 rounded-full bg-pe-card flex items-center justify-center text-pe-muted">
-                    {name ? name[0].toUpperCase() : "?"}
-                  </div>
-                </div>
-                <p>No logo selected</p>
-                <p class="text-xs">Upload to see preview</p>
-              </div>
-            {/if}
-          </div>
-
-          <div class="text-sm space-y-1 text-pe-text-dim">
-            <p><span class="font-medium text-pe-text">Name:</span> {name || "Not set"}</p>
-            <p>
-              <span class="font-medium text-pe-text">Members:</span>
-              {membersCount ? membersCount : "Not set"}
-            </p>
           </div>
         </div>
       </div>
