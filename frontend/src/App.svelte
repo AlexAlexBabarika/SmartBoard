@@ -30,12 +30,12 @@
 
 <div class="min-h-screen bg-pe-bg">
   {#if currentView !== "landing"}
-    <Navbar
-      {currentView}
-      on:navigate={(e) => navigateTo(e.detail.view)}
-      on:connectWallet={connectWallet}
-      on:disconnectWallet={disconnectWallet}
-    />
+  <Navbar
+    {currentView}
+    on:navigate={(e) => navigateTo(e.detail.view)}
+    on:connectWallet={connectWallet}
+    on:disconnectWallet={disconnectWallet}
+  />
   {/if}
 
   <main>

@@ -2,10 +2,30 @@
   import { onMount, createEventDispatcher } from "svelte";
   import { proposalAPI } from "../lib/api.js";
   import { walletStore } from "../stores/wallet.js";
+  import FloatingNetwork from "./FloatingNetwork.svelte";
 
   export let proposalId;
 
   const dispatch = createEventDispatcher();
+
+  let windowWidth = 1920;
+  let windowHeight = 1080;
+
+  onMount(async () => {
+    windowWidth = window.innerWidth;
+    windowHeight = window.innerHeight;
+    
+    const handleResize = () => {
+      windowWidth = window.innerWidth;
+      windowHeight = window.innerHeight;
+    };
+    
+    window.addEventListener("resize", handleResize);
+    
+    await loadProposal();
+    
+    return () => window.removeEventListener("resize", handleResize);
+  });
 
   let proposal = null;
   let loading = true;
@@ -16,9 +36,6 @@
 
   $: wallet = $walletStore;
 
-  onMount(async () => {
-    await loadProposal();
-  });
 
   async function loadProposal() {
     try {
@@ -159,7 +176,30 @@
   }
 </script>
 
-<div class="space-y-6 animate-fade-in">
+<div class="relative min-h-screen">
+  <!-- Floating Network Background -->
+  <div class="fixed inset-0 w-screen h-screen z-0 pointer-events-none overflow-hidden opacity-40">
+    {#if loading || !proposal}
+      <FloatingNetwork 
+        width={windowWidth} 
+        height={windowHeight} 
+        yesVotes={8}
+        noVotes={3}
+        className="w-full h-full"
+      />
+    {:else}
+      <FloatingNetwork 
+        width={windowWidth} 
+        height={windowHeight} 
+        yesVotes={Math.max(proposal.yes_votes || 0, 5)}
+        noVotes={Math.max(proposal.no_votes || 0, 2)}
+        className="w-full h-full"
+      />
+    {/if}
+  </div>
+
+  <!-- Content -->
+  <div class="relative z-10 space-y-6 animate-fade-in">
   <!-- Back button -->
   <button 
     class="flex items-center gap-2 px-4 py-2 rounded-pe text-pe-muted hover:text-pe-text hover:bg-pe-card transition-colors focus-ring" 
@@ -185,7 +225,7 @@
     </div>
   {:else if proposal}
     <!-- Proposal header -->
-    <div class="card-pe p-6">
+    <div class="card-pe p-6 bg-pe-card/20 backdrop-blur-md">
       <div class="flex flex-col md:flex-row justify-between items-start gap-4">
         <div class="flex-1">
           <h1 class="font-display text-3xl font-bold text-pe-text">{proposal.title}</h1>
@@ -231,7 +271,7 @@
     </div>
 
     <!-- PDF Viewer -->
-    <div class="card-pe p-6">
+    <div class="card-pe p-6 bg-pe-card/20 backdrop-blur-md">
       <h2 class="flex items-center gap-2 font-display font-semibold text-lg text-pe-text">
         <svg class="h-5 w-5 text-pe-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -296,7 +336,7 @@
 
     <!-- Voting Actions -->
     {#if proposal.status === "active"}
-      <div class="card-pe p-6">
+      <div class="card-pe p-6 bg-pe-card/20 backdrop-blur-md">
         <h2 class="font-display font-semibold text-lg text-pe-text">Cast Your Vote</h2>
 
         {#if !wallet.connected}
@@ -369,6 +409,7 @@
       </div>
     {/if}
   {/if}
+  </div>
 </div>
 
 <style>

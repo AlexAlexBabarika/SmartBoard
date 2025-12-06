@@ -1,17 +1,43 @@
 <script>
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, onMount } from "svelte";
+  import RotatingEarth from "./RotatingEarth.svelte";
 
   const dispatch = createEventDispatcher();
+
+  let windowWidth = 1920;
+  let windowHeight = 1080;
+
+  onMount(() => {
+    windowWidth = window.innerWidth;
+    windowHeight = window.innerHeight;
+    
+    const handleResize = () => {
+      windowWidth = window.innerWidth;
+      windowHeight = window.innerHeight;
+    };
+    
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  });
 
   function handleGetStarted() {
     dispatch("navigate", { view: "dashboard" });
   }
 </script>
 
-<div class="min-h-screen bg-pe-bg">
+<div class="min-h-screen bg-pe-bg relative overflow-hidden">
+  <!-- Full Screen Globe Background -->
+  <div class="fixed inset-0 w-screen h-screen z-0 pointer-events-none overflow-hidden">
+    <RotatingEarth 
+      width={windowWidth} 
+      height={windowHeight} 
+      className="w-full h-full opacity-50" 
+    />
+  </div>
+
   <!-- Hero Section -->
-  <section class="relative overflow-hidden pt-24 pb-20 px-4 sm:px-6 lg:px-8">
-    <!-- Background gradient effects -->
+  <section class="relative z-10 pt-24 pb-20 px-4 sm:px-6 lg:px-8">
+    <!-- Background gradient overlay for better text readability -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
       <div
         class="absolute -top-40 -right-40 w-80 h-80 bg-pe-accent/10 rounded-full blur-3xl"
@@ -26,7 +52,7 @@
         <!-- Logo/Brand -->
         <div class="flex justify-center mb-8">
           <div
-            class="flex items-center gap-3 p-4 rounded-pe-lg bg-pe-card border border-pe-border"
+            class="flex items-center gap-3 p-4 rounded-pe-lg bg-pe-card/80 backdrop-blur-sm border border-pe-border"
           >
             <svg
               class="w-10 h-10 text-pe-accent"
@@ -48,7 +74,7 @@
 
         <!-- Main Headline -->
         <h1
-          class="font-display font-bold text-5xl sm:text-6xl lg:text-7xl text-pe-text mb-6 leading-tight"
+          class="font-display font-bold text-5xl sm:text-6xl lg:text-7xl text-pe-text mb-6 leading-tight drop-shadow-lg"
         >
           AI-Powered Investment
           <span class="text-pe-accent">Scout DAO</span>
@@ -56,7 +82,7 @@
 
         <!-- Subheadline -->
         <p
-          class="text-xl sm:text-2xl text-pe-muted max-w-3xl mx-auto mb-10 leading-relaxed"
+          class="text-xl sm:text-2xl text-pe-muted max-w-3xl mx-auto mb-10 leading-relaxed drop-shadow-md"
         >
           Decentralized investment evaluation powered by artificial intelligence.
           Discover, analyze, and vote on the best investment opportunities.
@@ -64,10 +90,10 @@
 
         <!-- CTA Buttons -->
         <div
-          class="flex justify-center items-center mb-16"
+          class="flex justify-center items-center mb-8"
         >
           <button
-            class="btn-accent-pe text-lg px-8 py-4 min-w-[200px]"
+            class="btn-accent-pe text-lg px-8 py-4 min-w-[200px] shadow-xl"
             on:click={handleGetStarted}
           >
             Get Started
@@ -78,7 +104,7 @@
   </section>
 
   <!-- Features Section -->
-  <section class="py-20 px-4 sm:px-6 lg:px-8 bg-pe-panel/50">
+  <section class="relative z-10 py-20 px-4 sm:px-6 lg:px-8 bg-pe-panel/30 backdrop-blur-sm">
     <div class="max-w-7xl mx-auto">
       <div class="text-center mb-16">
         <h2
@@ -93,7 +119,7 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div class="card-pe p-6 stagger-1">
+        <div class="card-pe p-6 stagger-1 bg-pe-card/60">
           <div class="flex items-center gap-4 mb-4">
             <div
               class="w-10 h-10 rounded-pe bg-pe-accent/10 flex items-center justify-center flex-shrink-0"
@@ -110,7 +136,7 @@
           </p>
         </div>
 
-        <div class="card-pe p-6 stagger-2">
+        <div class="card-pe p-6 stagger-2 bg-pe-card/60">
           <div class="flex items-center gap-4 mb-4">
             <div
               class="w-10 h-10 rounded-pe bg-pe-accent/10 flex items-center justify-center flex-shrink-0"
@@ -127,7 +153,7 @@
           </p>
         </div>
 
-        <div class="card-pe p-6 stagger-3">
+        <div class="card-pe p-6 stagger-3 bg-pe-card/60">
           <div class="flex items-center gap-4 mb-4">
             <div
               class="w-10 h-10 rounded-pe bg-pe-accent/10 flex items-center justify-center flex-shrink-0"
@@ -144,7 +170,7 @@
           </p>
         </div>
 
-        <div class="card-pe p-6 stagger-4">
+        <div class="card-pe p-6 stagger-4 bg-pe-card/60">
           <div class="flex items-center gap-4 mb-4">
             <div
               class="w-10 h-10 rounded-pe bg-pe-accent/10 flex items-center justify-center flex-shrink-0"
