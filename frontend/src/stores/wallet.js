@@ -8,7 +8,7 @@ function loadFromStorage() {
   if (typeof window === 'undefined') {
     return { connected: false, address: null, balance: 0 };
   }
-  
+
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -21,7 +21,7 @@ function loadFromStorage() {
   } catch (e) {
     console.warn('Failed to load wallet state from localStorage:', e);
   }
-  
+
   return { connected: false, address: null, balance: 0 };
 }
 
@@ -29,7 +29,7 @@ function saveToStorage(state) {
   if (typeof window === 'undefined') {
     return;
   }
-  
+
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
@@ -41,7 +41,7 @@ function clearStorage() {
   if (typeof window === 'undefined') {
     return;
   }
-  
+
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch (e) {
@@ -52,7 +52,7 @@ function clearStorage() {
 function createWalletStore() {
   // Initialize from localStorage
   const initialState = loadFromStorage();
-  
+
   const { subscribe, set, update } = writable(initialState);
 
   return {
