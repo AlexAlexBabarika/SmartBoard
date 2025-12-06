@@ -147,27 +147,29 @@ def test_upload_to_ipfs_simulation():
         cid = upload_to_ipfs(test_data, "test.pdf")
         
         assert isinstance(cid, str)
-        assert cid.startswith("bafybei")
+        assert cid.startswith("bafysim")
         assert len(cid) > 10
 
 
-@patch('agent_utils.requests.post')
-def test_upload_to_ipfs_real(mock_post):
-    """Test IPFS upload with web3.storage API."""
-    mock_response = MagicMock()
-    mock_response.json.return_value = {"cid": "bafytest123"}
-    mock_post.return_value = mock_response
+@patch('agent_utils.shutil.which', return_value='/usr/bin/storacha')
+@patch('agent_utils.subprocess.run')
+def test_upload_to_ipfs_real(mock_run, _mock_which):
+    """Test IPFS upload with Storacha CLI."""
+    mock_run.return_value = MagicMock(
+        returncode=0,
+        stdout="Upload complete: https://storacha.link/ipfs/bafytest123",
+        stderr=""
+    )
     
     test_data = b"Test file content"
     
     with patch.dict('os.environ', {
-        'WEB3_STORAGE_KEY': 'test-token',
         'DEMO_MODE': 'false'
     }):
         cid = upload_to_ipfs(test_data, "test.pdf")
         
         assert cid == "bafytest123"
-        mock_post.assert_called_once()
+        mock_run.assert_called_once()
 
 
 @patch('agent_utils.requests.post')

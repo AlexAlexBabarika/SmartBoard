@@ -1,6 +1,6 @@
 {
-  "proposal_id": 2,
-  "ipfs_cid": "bafybei560493890cc5e199c94ae75278f899420554bf4dbf3c22d1447a",
+  "proposal_id": 7,
+  "ipfs_cid": "bafysimc26c2sarjf4ahemq4dopww2arrgmk65bt66m5mnyy3n2mnhsy36q",
   "memo_content": {
     "executive_summary": "NexGenAI presents a compelling investment opportunity in the rapidly growing enterprise AI automation market. The company's proprietary algorithms offer significant performance advantages, reducing training time by 70% while maintaining accuracy. With a strong founding team from Google AI Research and MIT, along with early traction showing 15% monthly growth, the company is well-positioned to capture market share. However, the competitive landscape is intense, and execution risks remain.",
     "investment_thesis": "The enterprise AI automation market is projected to reach $15B by 2027, representing a significant opportunity. NexGenAI's differentiated technology and AI-first approach provide a competitive moat against traditional RPA players. The founding team's deep expertise in AI research and their early customer validation demonstrate strong product-market fit potential. The company's capital efficient growth (15% MRR growth with 18 months runway) indicates prudent management and scalability.",
@@ -73,7 +73,7 @@
   "submission": {
     "title": "Investment Memo: NexGenAI",
     "summary": "NexGenAI presents a compelling investment opportunity in the rapidly growing enterprise AI automation market. The company's proprietary algorithms offer significant performance advantages, reducing training time by 70% while maintaining accuracy. With a strong founding team from Google AI Research and MIT, along with early traction showing 15% monthly growth, the company is well-positioned to capture market share. However, the competitive landscape is intense, and execution risks remain.",
-    "cid": "bafybei560493890cc5e199c94ae75278f899420554bf4dbf3c22d1447a",
+    "cid": "bafysimc26c2sarjf4ahemq4dopww2arrgmk65bt66m5mnyy3n2mnhsy36q",
     "confidence": 78,
     "metadata": {
       "startup_name": "NexGenAI",

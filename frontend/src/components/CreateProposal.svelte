@@ -16,7 +16,7 @@
   const exampleData = {
     title: "Investment Memo: NexGenAI",
     summary: "NexGenAI presents a compelling investment opportunity in the rapidly growing enterprise AI automation market. The company's proprietary algorithms offer significant performance advantages, reducing training time by 70% while maintaining accuracy.",
-    cid: "bafybeiexample123456789abcdefghijklmnopqrstuvwxyz",
+    cid: "bafysimexample123456789abcdefghijklmnopqrstuvwxyz",
     confidence: 78,
     metadata: JSON.stringify({
       "startup_name": "NexGenAI",
@@ -193,7 +193,7 @@
           <input 
             type="text" 
             id="cid"
-            placeholder="bafybei..." 
+            placeholder="bafysim..."
             class="input input-bordered w-full font-mono text-sm" 
             bind:value={cid}
             required
