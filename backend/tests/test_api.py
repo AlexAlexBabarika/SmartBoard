@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from unittest.mock import patch, MagicMock
 
-from backend.app.main import app, get_db
+from backend.app.main import app, get_db, get_neo_client
 from backend.app.models import Base
 from backend.app.db import get_db as original_get_db
 
@@ -35,6 +35,9 @@ app.dependency_overrides[get_db] = override_get_db
 # Create test client
 client = TestClient(app)
 
+# Create a mock NEO client for tests
+mock_neo_client = MagicMock()
+
 
 @pytest.fixture(autouse=True)
 def setup_database():
@@ -53,14 +56,16 @@ def test_health_check():
     assert "service" in data
 
 
-@patch("backend.app.main.neo_client.create_proposal")
-def test_submit_memo(mock_create_proposal):
+@patch("backend.app.main.get_neo_client")
+def test_submit_memo(mock_get_neo_client):
     """Test submitting a new memo proposal."""
     # Mock NEO client response
-    mock_create_proposal.return_value = {
+    mock_client = MagicMock()
+    mock_client.create_proposal.return_value = {
         "tx_hash": "0xabcd1234",
         "proposal_id": 1
     }
+    mock_get_neo_client.return_value = mock_client
 
     memo_data = {
         "title": "Test Investment Proposal",
@@ -82,7 +87,7 @@ def test_submit_memo(mock_create_proposal):
     assert data["no_votes"] == 0
 
     # Verify NEO client was called
-    mock_create_proposal.assert_called_once()
+    mock_client.create_proposal.assert_called_once()
 
 
 def test_get_proposals_empty():
@@ -92,13 +97,15 @@ def test_get_proposals_empty():
     assert response.json() == []
 
 
-@patch("backend.app.main.neo_client.create_proposal")
-def test_get_proposals(mock_create_proposal):
+@patch("backend.app.main.get_neo_client")
+def test_get_proposals(mock_get_neo_client):
     """Test getting list of proposals."""
-    mock_create_proposal.return_value = {
+    mock_client = MagicMock()
+    mock_client.create_proposal.return_value = {
         "tx_hash": "0xabcd1234",
         "proposal_id": 1
     }
+    mock_get_neo_client.return_value = mock_client
 
     # Create a proposal first
     memo_data = {
@@ -119,13 +126,15 @@ def test_get_proposals(mock_create_proposal):
     assert data[0]["title"] == memo_data["title"]
 
 
-@patch("backend.app.main.neo_client.create_proposal")
-def test_get_proposal_by_id(mock_create_proposal):
+@patch("backend.app.main.get_neo_client")
+def test_get_proposal_by_id(mock_get_neo_client):
     """Test getting a specific proposal by ID."""
-    mock_create_proposal.return_value = {
+    mock_client = MagicMock()
+    mock_client.create_proposal.return_value = {
         "tx_hash": "0xabcd1234",
         "proposal_id": 1
     }
+    mock_get_neo_client.return_value = mock_client
 
     # Create a proposal
     memo_data = {
@@ -153,15 +162,16 @@ def test_get_proposal_not_found():
     assert response.status_code == 404
 
 
-@patch("backend.app.main.neo_client.create_proposal")
-@patch("backend.app.main.neo_client.vote")
-def test_vote_on_proposal(mock_vote, mock_create_proposal):
+@patch("backend.app.main.get_neo_client")
+def test_vote_on_proposal(mock_get_neo_client):
     """Test voting on a proposal."""
-    mock_create_proposal.return_value = {
+    mock_client = MagicMock()
+    mock_client.create_proposal.return_value = {
         "tx_hash": "0xabcd1234",
         "proposal_id": 1
     }
-    mock_vote.return_value = {"tx_hash": "0xvote5678"}
+    mock_client.vote.return_value = {"tx_hash": "0xvote5678"}
+    mock_get_neo_client.return_value = mock_client
 
     # Create a proposal
     memo_data = {
@@ -189,16 +199,19 @@ def test_vote_on_proposal(mock_vote, mock_create_proposal):
     assert data["no_votes"] == 0
 
     # Verify vote was called
-    mock_vote.assert_called_once()
+    mock_client.vote.assert_called_once()
 
 
-@patch("backend.app.main.neo_client.create_proposal")
-def test_vote_duplicate_voter(mock_create_proposal):
+@patch("backend.app.main.get_neo_client")
+def test_vote_duplicate_voter(mock_get_neo_client):
     """Test that duplicate votes from same voter are rejected."""
-    mock_create_proposal.return_value = {
+    mock_client = MagicMock()
+    mock_client.create_proposal.return_value = {
         "tx_hash": "0xabcd1234",
         "proposal_id": 1
     }
+    mock_client.vote.return_value = {"tx_hash": "0x123"}
+    mock_get_neo_client.return_value = mock_client
 
     # Create proposal
     memo_data = {
@@ -217,25 +230,25 @@ def test_vote_duplicate_voter(mock_create_proposal):
         "voter_address": "NVoter123",
         "vote": 1
     }
-    with patch("app.main.neo_client.vote", return_value={"tx_hash": "0x123"}):
-        response1 = client.post("/vote", json=vote_data)
-        assert response1.status_code == 200
+    response1 = client.post("/vote", json=vote_data)
+    assert response1.status_code == 200
 
     # Duplicate vote
-    with patch("app.main.neo_client.vote", return_value={"tx_hash": "0x456"}):
-        response2 = client.post("/vote", json=vote_data)
-        assert response2.status_code == 400
+    response2 = client.post("/vote", json=vote_data)
+    assert response2.status_code == 400
 
 
-@patch("backend.app.main.neo_client.create_proposal")
-@patch("backend.app.main.neo_client.finalize_proposal")
-def test_finalize_proposal(mock_finalize, mock_create_proposal):
+@patch("backend.app.main.get_neo_client")
+def test_finalize_proposal(mock_get_neo_client):
     """Test finalizing a proposal."""
-    mock_create_proposal.return_value = {
+    mock_client = MagicMock()
+    mock_client.create_proposal.return_value = {
         "tx_hash": "0xabcd1234",
         "proposal_id": 1
     }
-    mock_finalize.return_value = {"tx_hash": "0xfinalize789"}
+    mock_client.vote.return_value = {"tx_hash": "0xvote1"}
+    mock_client.finalize_proposal.return_value = {"tx_hash": "0xfinalize789"}
+    mock_get_neo_client.return_value = mock_client
 
     # Create proposal with votes
     memo_data = {
@@ -249,22 +262,21 @@ def test_finalize_proposal(mock_finalize, mock_create_proposal):
     proposal_id = create_response.json()["id"]
 
     # Add some votes
-    with patch("app.main.neo_client.vote", return_value={"tx_hash": "0xvote1"}):
-        client.post("/vote", json={
-            "proposal_id": proposal_id,
-            "voter_address": "NVoter1",
-            "vote": 1
-        })
-        client.post("/vote", json={
-            "proposal_id": proposal_id,
-            "voter_address": "NVoter2",
-            "vote": 1
-        })
-        client.post("/vote", json={
-            "proposal_id": proposal_id,
-            "voter_address": "NVoter3",
-            "vote": 0
-        })
+    client.post("/vote", json={
+        "proposal_id": proposal_id,
+        "voter_address": "NVoter1",
+        "vote": 1
+    })
+    client.post("/vote", json={
+        "proposal_id": proposal_id,
+        "voter_address": "NVoter2",
+        "vote": 1
+    })
+    client.post("/vote", json={
+        "proposal_id": proposal_id,
+        "voter_address": "NVoter3",
+        "vote": 0
+    })
 
     # Finalize
     finalize_data = {"proposal_id": proposal_id}
@@ -278,7 +290,7 @@ def test_finalize_proposal(mock_finalize, mock_create_proposal):
     assert data["no_votes"] == 1
 
     # Verify finalize was called
-    mock_finalize.assert_called_once()
+    mock_client.finalize_proposal.assert_called_once()
 
 
 def test_finalize_nonexistent_proposal():

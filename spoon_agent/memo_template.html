@@ -245,14 +245,14 @@
     <div class="metadata">
         <div class="metadata-item">
             <div class="metadata-label">Confidence Score</div>
-            <div class="metadata-value {% if memo.confidence_score >= 80 %}score-excellent{% elif memo.confidence_score >= 65 %}score-good{% else %}score-moderate{% endif %}">
-                {{ memo.confidence_score }}/100
+            <div class="metadata-value {% if memo.confidence_score and memo.confidence_score >= 80 %}score-excellent{% elif memo.confidence_score and memo.confidence_score >= 65 %}score-good{% else %}score-moderate{% endif %}">
+                {{ memo.confidence_score or 0 }}/100
             </div>
         </div>
         <div class="metadata-item">
             <div class="metadata-label">Risk Score</div>
-            <div class="metadata-value {% if memo.risk_score < 40 %}score-excellent{% elif memo.risk_score < 60 %}score-moderate{% else %}score-high{% endif %}">
-                {{ memo.risk_score }}/100
+            <div class="metadata-value {% if memo.risk_score and memo.risk_score < 40 %}score-excellent{% elif memo.risk_score and memo.risk_score < 60 %}score-moderate{% else %}score-high{% endif %}">
+                {{ memo.risk_score or 0 }}/100
             </div>
         </div>
         <div class="metadata-item">
@@ -281,84 +281,113 @@
             <span>{{ startup.description }}</span>
         </div>
         {% endif %}
-        {% if startup.ask %}
+        {% if startup.ask and startup.ask.amount and startup.ask.valuation %}
         <div class="info-row">
             <span class="info-label">Fundraising Ask:</span>
             <span>${{ "{:,.0f}".format(startup.ask.amount) }} at ${{ "{:,.0f}".format(startup.ask.valuation) }} valuation</span>
+        </div>
+        {% elif startup.ask and startup.ask.amount %}
+        <div class="info-row">
+            <span class="info-label">Fundraising Ask:</span>
+            <span>${{ "{:,.0f}".format(startup.ask.amount) }}</span>
         </div>
         {% endif %}
     </div>
     
     <h2>Executive Summary</h2>
     <div class="executive-summary">
-        {{ memo.executive_summary }}
+        {{ memo.executive_summary or "Executive summary not available." }}
     </div>
     
     <h2>Investment Thesis</h2>
-    <p>{{ memo.investment_thesis }}</p>
+    <p>{{ memo.investment_thesis or "Investment thesis not available." }}</p>
     
     <h2>SWOT Analysis</h2>
     <div class="swot-grid">
         <div class="swot-box strengths">
             <h3>Strengths</h3>
             <ul>
-                {% for strength in memo.swot.strengths %}
-                <li>{{ strength }}</li>
-                {% endfor %}
+                {% if memo.swot and memo.swot.strengths %}
+                    {% for strength in memo.swot.strengths %}
+                    <li>{{ strength }}</li>
+                    {% endfor %}
+                {% else %}
+                    <li>No strengths identified.</li>
+                {% endif %}
             </ul>
         </div>
         
         <div class="swot-box weaknesses">
             <h3>Weaknesses</h3>
             <ul>
-                {% for weakness in memo.swot.weaknesses %}
-                <li>{{ weakness }}</li>
-                {% endfor %}
+                {% if memo.swot and memo.swot.weaknesses %}
+                    {% for weakness in memo.swot.weaknesses %}
+                    <li>{{ weakness }}</li>
+                    {% endfor %}
+                {% else %}
+                    <li>No weaknesses identified.</li>
+                {% endif %}
             </ul>
         </div>
         
         <div class="swot-box opportunities">
             <h3>Opportunities</h3>
             <ul>
-                {% for opportunity in memo.swot.opportunities %}
-                <li>{{ opportunity }}</li>
-                {% endfor %}
+                {% if memo.swot and memo.swot.opportunities %}
+                    {% for opportunity in memo.swot.opportunities %}
+                    <li>{{ opportunity }}</li>
+                    {% endfor %}
+                {% else %}
+                    <li>No opportunities identified.</li>
+                {% endif %}
             </ul>
         </div>
         
         <div class="swot-box threats">
             <h3>Threats</h3>
             <ul>
-                {% for threat in memo.swot.threats %}
-                <li>{{ threat }}</li>
-                {% endfor %}
+                {% if memo.swot and memo.swot.threats %}
+                    {% for threat in memo.swot.threats %}
+                    <li>{{ threat }}</li>
+                    {% endfor %}
+                {% else %}
+                    <li>No threats identified.</li>
+                {% endif %}
             </ul>
         </div>
     </div>
     
     <h2>Risk Assessment</h2>
-    {% for risk in memo.risks %}
-    <div class="risk-item">
-        <div class="risk-header">
-            <span class="risk-category">{{ risk.category }}</span>
-            <span class="risk-severity severity-{{ risk.severity.lower() }}">{{ risk.severity }}</span>
+    {% if memo.risks %}
+        {% for risk in memo.risks %}
+        <div class="risk-item">
+            <div class="risk-header">
+                <span class="risk-category">{{ risk.category or "Unknown" }}</span>
+                <span class="risk-severity severity-{{ (risk.severity or "Medium").lower() }}">{{ risk.severity or "Medium" }}</span>
+            </div>
+            <div class="risk-description">{{ risk.description or "No description available." }}</div>
+            <div class="risk-mitigation"><strong>Mitigation:</strong> {{ risk.mitigation or "No mitigation strategy provided." }}</div>
         </div>
-        <div class="risk-description">{{ risk.description }}</div>
-        <div class="risk-mitigation"><strong>Mitigation:</strong> {{ risk.mitigation }}</div>
-    </div>
-    {% endfor %}
+        {% endfor %}
+    {% else %}
+        <p>No risk assessment available.</p>
+    {% endif %}
     
     <h2>Recommendation</h2>
     <div class="recommendation">
-        {{ memo.recommendation }}
+        {{ memo.recommendation or "No recommendation available." }}
     </div>
     
     <h2>Key Metrics to Track</h2>
     <div class="metrics-list">
         <ul>
-            {% for metric in memo.key_metrics_to_track %}
-            <li>{{ metric }}</li>
-            {% endfor %}
+            {% if memo.key_metrics_to_track %}
+                {% for metric in memo.key_metrics_to_track %}
+                <li>{{ metric }}</li>
+                {% endfor %}
+            {% else %}
+                <li>No specific metrics identified.</li>
+            {% endif %}
         </ul>
     </div>
     
