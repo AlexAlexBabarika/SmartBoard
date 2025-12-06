@@ -16,8 +16,8 @@
       "model": "${LLM_MODEL}"
     },
     "ipfs": {
-      "provider": "web3.storage",
-      "api_token": "${WEB3_STORAGE_KEY}"
+      "provider": "storacha",
+      "cli": "${STORACHA_CLI}"
     },
     "blockchain": {
       "network": "neo",
@@ -42,7 +42,7 @@
     "storage_connector": {
       "type": "ipfs",
       "config": {
-        "provider": "web3.storage"
+        "provider": "storacha"
       }
     }
   },

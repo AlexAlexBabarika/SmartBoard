@@ -98,7 +98,7 @@ Optional (for production):
 - **neo3-boa** (for contract compilation)
 - **neo-mamba** (for blockchain deployment)
 - **OpenAI API key** (or other LLM provider)
-- **web3.storage API token** (for IPFS)
+- **Storacha CLI** (for real IPFS uploads, no API token needed)
 
 ### Installation
 
@@ -116,6 +116,14 @@ python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
+
+**Note for macOS users:** If you want PDF generation to work (optional for demo mode), install WeasyPrint system dependencies:
+
+```bash
+brew install cairo pango gdk-pixbuf libffi
+```
+
+Without these, the agent will use HTML instead of PDF (works fine for demo mode).
 
 3. **Set up frontend**
 
@@ -135,8 +143,11 @@ OPENAI_API_KEY=sk-your-key-here
 LLM_PROVIDER=openai
 LLM_MODEL=gpt-4
 
-# IPFS Storage
-WEB3_STORAGE_KEY=your-web3-storage-token
+# IPFS Storage (Storacha - no API token needed)
+# Install CLI: npm i -g @storacha/cli
+# Login: storacha login
+# Use/create space: storacha space use <name> (or storacha space create <name>)
+STORACHA_CLI=storacha
 
 # NEO Blockchain
 NEO_RPC_URL=https://testnet1.neo.org:443
@@ -159,10 +170,13 @@ The project can run in **demo mode** without real API keys or blockchain setup.
 #### Terminal 1: Start Backend
 
 ```bash
-cd backend
-source ../.venv/bin/activate
-uvicorn app.main:app --reload
+# Run from project root (not from backend/ directory)
+cd <project-root>  # Navigate to the project root directory
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uvicorn backend.app.main:app --reload
 ```
+
+**Note:** Run from the project root directory so the `.env` file is properly loaded.
 
 Backend will be available at: http://localhost:8000
 
@@ -246,7 +260,14 @@ For real LLM calls, set in `.env`:
 
 **IPFS Setup:**
 
-Get a free API token from https://web3.storage and set `WEB3_STORAGE_KEY` in `.env`.
+Install the Storacha CLI (no API key needed):
+
+```bash
+npm i -g @storacha/cli
+storacha login             # email or GitHub
+storacha space create dao  # or pick an existing space
+storacha space use dao
+```
 
 **Running tests:**
 
@@ -417,7 +438,7 @@ pytest contracts/tests/ -v
 | `OPENAI_API_KEY` | OpenAI API key for LLM | For real LLM | - |
 | `LLM_PROVIDER` | LLM provider (openai, anthropic) | No | openai |
 | `LLM_MODEL` | LLM model to use | No | gpt-4 |
-| `WEB3_STORAGE_KEY` | web3.storage API token | For real IPFS | - |
+| `STORACHA_CLI` | Storacha CLI executable name | No (defaults to storacha) | storacha |
 | `NEO_RPC_URL` | NEO RPC endpoint | No | testnet URL |
 | `NEO_WALLET_PRIVATE_KEY` | Private key for signing | For real blockchain | - |
 | `NEO_CONTRACT_HASH` | Deployed contract hash | No | - |
@@ -450,7 +471,7 @@ MIT License - see LICENSE file for details
 
 - **NEO** for blockchain infrastructure
 - **SpoonOS** for agent orchestration framework
-- **web3.storage** for IPFS hosting
+- **Storacha** for IPFS hosting (via CLI)
 - **OpenAI** for LLM capabilities
 - **Svelte** and **TailwindCSS** for beautiful UI
 - **Hackat Hackathon 2025** for the opportunity

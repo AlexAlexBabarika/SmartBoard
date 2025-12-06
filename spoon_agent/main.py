@@ -11,6 +11,7 @@ import sys
 import json
 import argparse
 import logging
+import shutil
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -22,8 +23,12 @@ from agent_utils import (
     submit_to_backend
 )
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from project root or current directory
+env_path = Path(__file__).parent.parent / '.env'
+if env_path.exists():
+    load_dotenv(env_path)
+else:
+    load_dotenv()  # Fallback to current directory
 
 # Configure logging
 logging.basicConfig(
@@ -87,7 +92,7 @@ def process_startup_data(startup_data: dict) -> dict:
     
     logger.info(f"✅ Memo submitted successfully! Proposal ID: {response.get('id')}")
     logger.info(f"   IPFS CID: {ipfs_cid}")
-    logger.info(f"   View at: https://w3s.link/ipfs/{ipfs_cid}")
+    logger.info(f"   View at: https://storacha.link/ipfs/{ipfs_cid}")
     
     return {
         "proposal_id": response.get("id"),
@@ -167,13 +172,13 @@ def main():
     required_vars = ["OPENAI_API_KEY"]
     demo_mode_enabled = os.getenv("DEMO_MODE", "true").lower() == "true"
     
-    if not demo_mode_enabled:
-        required_vars.extend(["WEB3_STORAGE_KEY"])
-    
     missing_vars = [var for var in required_vars if not os.getenv(var)]
     if missing_vars and not args.demo:
         logger.warning(f"Missing environment variables: {', '.join(missing_vars)}")
         logger.warning("Running with simulated operations. Set DEMO_MODE=false for real operations.")
+
+    if not demo_mode_enabled and not shutil.which(os.getenv("STORACHA_CLI", "storacha")):
+        logger.warning("Storacha CLI not found. Install @storacha/cli to enable real uploads.")
     
     try:
         if args.demo or (not args.input):

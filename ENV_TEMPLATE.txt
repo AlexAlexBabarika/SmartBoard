@@ -14,11 +14,16 @@ LLM_PROVIDER=openai
 LLM_MODEL=gpt-4
 
 # ===========================================
-# IPFS Storage Configuration
+# IPFS Storage Configuration (Storacha - no API keys)
 # ===========================================
-# Get your free token at: https://web3.storage
-# Sign up, create a new token with upload permissions
-WEB3_STORAGE_KEY=your-web3-storage-api-token-here
+# Install Storacha CLI and log in:
+#   npm i -g @storacha/cli
+#   storacha login
+# Select or create a space for uploads:
+#   storacha space create dao
+#   storacha space use dao
+# Optional: override CLI binary name
+STORACHA_CLI=storacha
 
 # ===========================================
 # NEO Blockchain Configuration

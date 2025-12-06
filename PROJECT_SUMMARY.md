@@ -14,7 +14,7 @@ This repository contains a **fully functional, runnable** hackathon project for 
   - NEO blockchain integration (with simulation mode)
   - Comprehensive error handling and logging
 - **Tests**: `backend/tests/test_api.py` (10+ test cases)
-- **Run**: `cd backend && uvicorn app.main:app --reload`
+- **Run**: `uvicorn backend.app.main:app --reload` (from project root)
 
 ### ✅ SpoonOS Agent (Python)
 - **Location**: `spoon_agent/`
@@ -22,7 +22,7 @@ This repository contains a **fully functional, runnable** hackathon project for 
   - LLM-powered investment analysis (OpenAI/Anthropic/simulated)
   - SWOT analysis, risk assessment, confidence scoring
   - PDF generation from HTML template
-  - IPFS upload via web3.storage (with simulation mode)
+  - IPFS upload via Storacha CLI (with simulation mode)
   - Automatic backend submission
   - Standalone and SpoonOS CLI compatible
 - **Tests**: `spoon_agent/tests/test_agent.py` (8+ test cases)
@@ -92,8 +92,8 @@ pip install -r requirements.txt
 cd frontend && npm install && cd ..
 
 # 3. Start backend (Terminal 1)
-cd backend
-uvicorn app.main:app --reload
+# Run from project root (not from backend/ directory)
+uvicorn backend.app.main:app --reload
 
 # 4. Start frontend (Terminal 2)
 cd frontend
@@ -124,7 +124,7 @@ python spoon_agent/main.py --demo
 | **Backend** | FastAPI 0.109, Python 3.10+, SQLAlchemy 2 |
 | **AI/Agent** | OpenAI GPT-4, WeasyPrint, Jinja2 |
 | **Blockchain** | NEO (neo3-boa, neo-mamba) |
-| **Storage** | IPFS (web3.storage), SQLite |
+| **Storage** | IPFS (Storacha), SQLite |
 | **Testing** | pytest, pytest-asyncio, pytest-mock |
 
 ## ✨ Key Features Implemented
@@ -158,15 +158,15 @@ DEMO_MODE=true
 - Simulates blockchain transactions
 - Perfect for hackathon demos
 
-### Production Mode (Requires API Keys)
+### Production Mode (Requires API Keys + Storacha CLI)
 ```bash
 DEMO_MODE=false
 OPENAI_API_KEY=sk-...
-WEB3_STORAGE_KEY=...
+STORACHA_CLI=storacha   # optional override
 NEO_WALLET_PRIVATE_KEY=...
 ```
 - Real LLM analysis
-- Real IPFS uploads
+- Real IPFS uploads via Storacha
 - Real blockchain transactions
 
 ## 🎯 Demo Workflow

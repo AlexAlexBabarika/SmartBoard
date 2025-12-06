@@ -12,6 +12,11 @@ from jinja2 import Template
 from typing import Dict, Any
 import hashlib
 import time
+import re
+import shutil
+import subprocess
+import tempfile
+import base64
 
 logger = logging.getLogger(__name__)
 
@@ -22,29 +27,30 @@ def llm_call(prompt: str, system_prompt: str = None) -> str:
     """
     Call LLM provider (OpenAI, Anthropic, etc.) with the given prompt.
     Abstracted for easy swapping/mocking.
-    
+
     Args:
         prompt: User prompt
         system_prompt: Optional system prompt
-        
+
     Returns:
         LLM response text
     """
     provider = os.getenv("LLM_PROVIDER", "openai").lower()
     api_key = os.getenv("OPENAI_API_KEY")
     model = os.getenv("LLM_MODEL", "gpt-4")
-    
+
     if not api_key:
         logger.warning("No LLM API key found, using simulated response")
         return _simulated_llm_response(prompt)
-    
+
     try:
         if provider == "openai":
             return _call_openai(prompt, system_prompt, api_key, model)
         elif provider == "anthropic":
             return _call_anthropic(prompt, system_prompt, api_key, model)
         else:
-            logger.warning(f"Unknown LLM provider: {provider}, using simulation")
+            logger.warning(
+                f"Unknown LLM provider: {provider}, using simulation")
             return _simulated_llm_response(prompt)
     except Exception as e:
         logger.error(f"LLM call failed: {e}")
@@ -59,21 +65,21 @@ def _call_openai(prompt: str, system_prompt: str, api_key: str, model: str) -> s
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
-    
+
     messages = []
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})
     messages.append({"role": "user", "content": prompt})
-    
+
     data = {
         "model": model,
         "messages": messages,
         "temperature": 0.7
     }
-    
+
     response = requests.post(url, headers=headers, json=data, timeout=60)
     response.raise_for_status()
-    
+
     return response.json()["choices"][0]["message"]["content"]
 
 
@@ -85,19 +91,19 @@ def _call_anthropic(prompt: str, system_prompt: str, api_key: str, model: str) -
         "anthropic-version": "2023-06-01",
         "Content-Type": "application/json"
     }
-    
+
     data = {
         "model": model if "claude" in model else "claude-3-sonnet-20240229",
         "max_tokens": 4096,
         "messages": [{"role": "user", "content": prompt}]
     }
-    
+
     if system_prompt:
         data["system"] = system_prompt
-    
+
     response = requests.post(url, headers=headers, json=data, timeout=60)
     response.raise_for_status()
-    
+
     return response.json()["content"][0]["text"]
 
 
@@ -105,9 +111,9 @@ def _simulated_llm_response(prompt: str) -> str:
     """Generate a simulated LLM response for demo purposes."""
     return json.dumps({
         "executive_summary": "NexGenAI presents a compelling investment opportunity in the rapidly growing enterprise AI automation market. The company's proprietary algorithms offer significant performance advantages, reducing training time by 70% while maintaining accuracy. With a strong founding team from Google AI Research and MIT, along with early traction showing 15% monthly growth, the company is well-positioned to capture market share. However, the competitive landscape is intense, and execution risks remain.",
-        
+
         "investment_thesis": "The enterprise AI automation market is projected to reach $15B by 2027, representing a significant opportunity. NexGenAI's differentiated technology and AI-first approach provide a competitive moat against traditional RPA players. The founding team's deep expertise in AI research and their early customer validation demonstrate strong product-market fit potential. The company's capital efficient growth (15% MRR growth with 18 months runway) indicates prudent management and scalability.",
-        
+
         "swot": {
             "strengths": [
                 "Proprietary AI algorithms with 70% efficiency improvement",
@@ -137,7 +143,7 @@ def _simulated_llm_response(prompt: str) -> str:
                 "Regulatory risks around AI usage"
             ]
         },
-        
+
         "risks": [
             {
                 "category": "Market Risk",
@@ -164,12 +170,12 @@ def _simulated_llm_response(prompt: str) -> str:
                 "mitigation": "Strong employer brand from founder backgrounds"
             }
         ],
-        
+
         "risk_score": 58,
         "confidence_score": 78,
-        
+
         "recommendation": "INVEST with cautious optimism. NexGenAI demonstrates strong technical foundations and promising early traction. The $5M ask at $20M valuation is reasonable given current metrics and market opportunity. However, close monitoring of customer acquisition costs, retention metrics, and competitive positioning is essential. Recommend staged investment with milestones tied to customer growth targets.",
-        
+
         "key_metrics_to_track": [
             "MRR growth rate (target: maintain >10% monthly)",
             "Customer acquisition cost and payback period",
@@ -183,10 +189,10 @@ def _simulated_llm_response(prompt: str) -> str:
 def generate_deal_memo(startup_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Generate a comprehensive investment deal memo using LLM.
-    
+
     Args:
         startup_data: Dict containing startup information
-        
+
     Returns:
         Dict with memo content including SWOT, thesis, risks, scores
     """
@@ -194,20 +200,20 @@ def generate_deal_memo(startup_data: Dict[str, Any]) -> Dict[str, Any]:
     template_path = Path(__file__).parent / "prompt_template.txt"
     with open(template_path, "r") as f:
         prompt_template = f.read()
-    
+
     # Format prompt with startup data
     prompt = prompt_template.format(
         startup_json=json.dumps(startup_data, indent=2)
     )
-    
+
     system_prompt = """You are an expert venture capital analyst specializing in early-stage technology investments. 
 Your task is to analyze startups and produce comprehensive investment memos with SWOT analysis, 
 investment thesis, risk assessment, and confidence scores. Be thorough, analytical, and balanced 
 in your assessments. Output your analysis in JSON format."""
-    
+
     # Call LLM
     response_text = llm_call(prompt, system_prompt)
-    
+
     # Parse JSON response
     try:
         # Try to extract JSON from response (handles cases where LLM adds text before/after)
@@ -221,49 +227,49 @@ in your assessments. Output your analysis in JSON format."""
         logger.error(f"Failed to parse LLM response as JSON: {e}")
         logger.warning("Using simulated response instead")
         memo_content = json.loads(_simulated_llm_response(prompt))
-    
+
     return memo_content
 
 
 def render_memo_html(memo_content: Dict[str, Any], startup_data: Dict[str, Any]) -> str:
     """
     Render investment memo as HTML using Jinja2 template.
-    
+
     Args:
         memo_content: Generated memo content from LLM
         startup_data: Original startup data
-        
+
     Returns:
         HTML string
     """
     template_path = Path(__file__).parent / "memo_template.html"
     with open(template_path, "r") as f:
         template_str = f.read()
-    
+
     template = Template(template_str)
-    
+
     html = template.render(
         startup=startup_data,
         memo=memo_content,
         generated_date=time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
     )
-    
+
     return html
 
 
 def html_to_pdf(html_content: str) -> bytes:
     """
     Convert HTML to PDF using WeasyPrint.
-    
+
     Args:
         html_content: HTML string
-        
+
     Returns:
         PDF bytes
     """
     try:
         from weasyprint import HTML, CSS
-        
+
         # Custom CSS for better PDF rendering
         css = CSS(string="""
             @page {
@@ -279,68 +285,121 @@ def html_to_pdf(html_content: str) -> bytes:
                 color: #1a202c;
             }
         """)
-        
+
         pdf_bytes = HTML(string=html_content).write_pdf(stylesheets=[css])
         logger.info(f"Generated PDF: {len(pdf_bytes)} bytes")
         return pdf_bytes
-        
+
     except ImportError:
-        logger.error("WeasyPrint not available, using fallback")
+        logger.warning(
+            "WeasyPrint not available, using HTML fallback (demo mode)")
         # Fallback: return HTML as bytes (for demo)
         return html_content.encode('utf-8')
     except Exception as e:
-        logger.error(f"PDF generation failed: {e}")
+        error_msg = str(e)
+        if 'libgobject' in error_msg or 'GTK' in error_msg or 'cairo' in error_msg:
+            logger.warning(
+                "WeasyPrint system libraries not installed. Using HTML fallback (demo mode).")
+            logger.info(
+                "To enable PDF generation on macOS, install: brew install cairo pango gdk-pixbuf libffi")
+            logger.info("Or use demo mode - HTML will be used instead of PDF.")
+        else:
+            logger.warning(
+                f"PDF generation failed: {error_msg[:100]}... Using HTML fallback.")
+        # Fallback: return HTML as bytes (for demo)
         return html_content.encode('utf-8')
 
 
 def upload_to_ipfs(file_bytes: bytes, filename: str) -> str:
     """
-    Upload file to IPFS using web3.storage API.
-    
+    Upload file to IPFS using Storacha CLI (no API token required).
+
     Args:
         file_bytes: File content as bytes
         filename: Name for the file
-        
+
     Returns:
         IPFS CID
     """
-    api_token = os.getenv("WEB3_STORAGE_KEY")
-    
-    if not api_token or DEMO_MODE:
-        logger.warning("No web3.storage key or DEMO_MODE enabled, simulating IPFS upload")
+    if DEMO_MODE:
+        logger.warning(
+            "DEMO_MODE enabled, simulating Storacha upload")
         return _simulated_ipfs_upload(file_bytes, filename)
-    
+
+    storacha_cmd = os.getenv("STORACHA_CLI", "storacha")
+
+    if not shutil.which(storacha_cmd):
+        logger.warning(
+            "Storacha CLI not found. Install with `npm i -g @storacha/cli` and run `storacha login`.")
+        return _simulated_ipfs_upload(file_bytes, filename)
+
+    tmp_path = None
     try:
-        url = "https://api.web3.storage/upload"
-        headers = {
-            "Authorization": f"Bearer {api_token}",
-            "X-NAME": filename
-        }
-        
-        response = requests.post(
-            url,
-            headers=headers,
-            data=file_bytes,
-            timeout=120
+        with tempfile.NamedTemporaryFile(delete=False, suffix=Path(filename).suffix) as tmp:
+            tmp.write(file_bytes)
+            tmp.flush()
+            tmp_path = tmp.name
+
+        cmd = [storacha_cmd, "up", tmp_path]
+
+        if os.getenv("STORACHA_NO_WRAP", "true").lower() == "true":
+            cmd.append("--no-wrap")
+
+        logger.info(f"Uploading to Storacha via CLI: {' '.join(cmd)}")
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=240
         )
-        response.raise_for_status()
-        
-        cid = response.json()["cid"]
-        logger.info(f"Uploaded to IPFS: {cid}")
+
+        output = f"{result.stdout}\n{result.stderr}"
+
+        if result.returncode != 0:
+            logger.error(
+                f"Storacha CLI upload failed ({result.returncode}): {output.strip()[:400]}")
+            return _simulated_ipfs_upload(file_bytes, filename)
+
+        cid_match = re.search(
+            r"storacha\\.link/ipfs/([a-zA-Z0-9]+)", output)
+        if not cid_match:
+            cid_match = re.search(r"(bafy[a-zA-Z0-9]+)", output)
+
+        if cid_match:
+            cid = cid_match.group(1)
+            logger.info(f"Uploaded to Storacha/IPFS: {cid}")
         return cid
-        
+
+        logger.error(
+            f"Could not parse CID from Storacha CLI output: {output.strip()[:400]}")
+        return _simulated_ipfs_upload(file_bytes, filename)
+
+    except FileNotFoundError:
+        logger.warning(
+            "Storacha CLI executable not found. Falling back to simulated CID.")
+        return _simulated_ipfs_upload(file_bytes, filename)
+    except subprocess.TimeoutExpired:
+        logger.error("Storacha CLI upload timed out.")
+        return _simulated_ipfs_upload(file_bytes, filename)
     except Exception as e:
-        logger.error(f"IPFS upload failed: {e}")
+        logger.error(f"Storacha upload failed: {e}")
         logger.warning("Falling back to simulated CID")
         return _simulated_ipfs_upload(file_bytes, filename)
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                logger.debug(f"Could not remove temp file {tmp_path}")
 
 
 def _simulated_ipfs_upload(file_bytes: bytes, filename: str) -> str:
     """Generate a simulated IPFS CID for demo purposes."""
-    # Generate a realistic-looking CID based on content hash
-    content_hash = hashlib.sha256(file_bytes).hexdigest()
-    # CIDv1 format: bafybei... (base32)
-    cid = f"bafybei{content_hash[:52]}"
+    # Generate base32-encoded hash to avoid non-base32 characters
+    content_hash = hashlib.sha256(file_bytes + filename.encode()).digest()
+    base32_hash = base64.b32encode(content_hash).decode("utf-8").lower().rstrip("=")
+    # Use a distinct prefix so UI can still detect demo CIDs
+    cid = f"bafysim{base32_hash[:52]}"
     logger.info(f"[SIMULATED] Generated IPFS CID: {cid}")
     return cid
 
@@ -348,16 +407,16 @@ def _simulated_ipfs_upload(file_bytes: bytes, filename: str) -> str:
 def submit_to_backend(submission_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Submit memo to backend API.
-    
+
     Args:
         submission_data: Dict with title, summary, cid, confidence, metadata
-        
+
     Returns:
         Backend response
     """
     backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
     endpoint = f"{backend_url}/submit-memo"
-    
+
     try:
         response = requests.post(
             endpoint,
@@ -365,14 +424,15 @@ def submit_to_backend(submission_data: Dict[str, Any]) -> Dict[str, Any]:
             timeout=30
         )
         response.raise_for_status()
-        
+
         result = response.json()
         logger.info(f"Submitted to backend: Proposal ID {result.get('id')}")
         return result
-        
+
     except requests.exceptions.ConnectionError:
         logger.error(f"Could not connect to backend at {backend_url}")
-        logger.warning("Make sure the backend is running: uvicorn app.main:app --reload")
+        logger.warning(
+            "Make sure the backend is running: uvicorn app.main:app --reload")
         # Return simulated response for demo
         return {
             "id": 1,
@@ -386,4 +446,3 @@ def submit_to_backend(submission_data: Dict[str, Any]) -> Dict[str, Any]:
             "status": "failed",
             "error": str(e)
         }
-
