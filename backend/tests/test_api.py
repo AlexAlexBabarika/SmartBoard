@@ -53,7 +53,7 @@ def test_health_check():
     assert "service" in data
 
 
-@patch("app.main.neo_client.create_proposal")
+@patch("backend.app.main.neo_client.create_proposal")
 def test_submit_memo(mock_create_proposal):
     """Test submitting a new memo proposal."""
     # Mock NEO client response
@@ -92,7 +92,7 @@ def test_get_proposals_empty():
     assert response.json() == []
 
 
-@patch("app.main.neo_client.create_proposal")
+@patch("backend.app.main.neo_client.create_proposal")
 def test_get_proposals(mock_create_proposal):
     """Test getting list of proposals."""
     mock_create_proposal.return_value = {
@@ -119,7 +119,7 @@ def test_get_proposals(mock_create_proposal):
     assert data[0]["title"] == memo_data["title"]
 
 
-@patch("app.main.neo_client.create_proposal")
+@patch("backend.app.main.neo_client.create_proposal")
 def test_get_proposal_by_id(mock_create_proposal):
     """Test getting a specific proposal by ID."""
     mock_create_proposal.return_value = {
@@ -153,8 +153,8 @@ def test_get_proposal_not_found():
     assert response.status_code == 404
 
 
-@patch("app.main.neo_client.create_proposal")
-@patch("app.main.neo_client.vote")
+@patch("backend.app.main.neo_client.create_proposal")
+@patch("backend.app.main.neo_client.vote")
 def test_vote_on_proposal(mock_vote, mock_create_proposal):
     """Test voting on a proposal."""
     mock_create_proposal.return_value = {
@@ -192,7 +192,7 @@ def test_vote_on_proposal(mock_vote, mock_create_proposal):
     mock_vote.assert_called_once()
 
 
-@patch("app.main.neo_client.create_proposal")
+@patch("backend.app.main.neo_client.create_proposal")
 def test_vote_duplicate_voter(mock_create_proposal):
     """Test that duplicate votes from same voter are rejected."""
     mock_create_proposal.return_value = {
@@ -227,8 +227,8 @@ def test_vote_duplicate_voter(mock_create_proposal):
         assert response2.status_code == 400
 
 
-@patch("app.main.neo_client.create_proposal")
-@patch("app.main.neo_client.finalize_proposal")
+@patch("backend.app.main.neo_client.create_proposal")
+@patch("backend.app.main.neo_client.finalize_proposal")
 def test_finalize_proposal(mock_finalize, mock_create_proposal):
     """Test finalizing a proposal."""
     mock_create_proposal.return_value = {

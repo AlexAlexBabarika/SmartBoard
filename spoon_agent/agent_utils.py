@@ -361,14 +361,14 @@ def upload_to_ipfs(file_bytes: bytes, filename: str) -> str:
             return _simulated_ipfs_upload(file_bytes, filename)
 
         cid_match = re.search(
-            r"storacha\\.link/ipfs/([a-zA-Z0-9]+)", output)
+            r"storacha\.link/ipfs/([a-zA-Z0-9]+)", output)
         if not cid_match:
             cid_match = re.search(r"(bafy[a-zA-Z0-9]+)", output)
 
         if cid_match:
             cid = cid_match.group(1)
             logger.info(f"Uploaded to Storacha/IPFS: {cid}")
-        return cid
+            return cid
 
         logger.error(
             f"Could not parse CID from Storacha CLI output: {output.strip()[:400]}")
