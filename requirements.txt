@@ -15,7 +15,7 @@ requests
 httpx
 
 # PDF Generation
-weasyprint
+reportlab>=4.0.0
 jinja2
 PyPDF2
 
