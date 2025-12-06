@@ -207,19 +207,16 @@ def check_cid_exists(cid: str, db) -> bool:
     Returns:
         True if CID exists, False otherwise
     """
-    # Clean CID for comparison
-    clean_cid = clean_cid(cid)
-    
-    existing = db.query(DBProposal).filter(
-        DBProposal.ipfs_cid == clean_cid
-    ).first()
+    normalized_cid = clean_cid(cid)
+    existing = db.query(DBProposal).filter(DBProposal.ipfs_cid == normalized_cid).first()
+    return existing is not None
+
+
 def check_title_exists(title: str, db) -> bool:
     """Check if a proposal with the given title already exists."""
     if not title:
         return False
     existing = db.query(DBProposal).filter(DBProposal.title == title).first()
-    return existing is not None
-    
     return existing is not None
 
 
@@ -338,8 +335,6 @@ def sync_proposal_from_manifest(
         return None
     
     # Check if already exists
-    if skip_existing and (check_cid_exists(cid, db) or check_title_exists(proposal_data.get("title"), db)):
-        logger.info(f"Proposal with CID or title already exists, skipping")
     if skip_existing and (check_cid_exists(cid, db) or check_title_exists(proposal_data.get("title"), db)):
         logger.info(f"Proposal with CID or title already exists, skipping")
         return None
