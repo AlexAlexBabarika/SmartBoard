@@ -141,6 +141,45 @@
       "1551836022-deb1028da3cc", // Innovation
       "1550439062-609e153127ce", // Startup
       "1460925895917-afdab827c52f", // Technology
+      "1521737852567-6949f3f9f2b5", // Data Analytics
+      "1551434678-e17c5bd9a51b", // Team Collaboration
+      "1552664736-46f2a69b7bef", // Growth Strategy
+      "1556761175-4b46a572b786", // Digital Transformation
+      "1553877522-43269d4ea984", // Research & Development
+      "1556761175-b4136ca6dcd0", // Market Analysis
+      "1461988623082-5e1e3755bcca", // Investment Planning
+      "1507003211169-0a1dd7228f2d", // Corporate Strategy
+      "1551836022-4cfe5f0b7c1e", // Innovation Lab
+      "1556761175-5973dc0f32e7", // Technology Stack
+      "1521737604893-d98cc65f3826", // Cloud Computing
+      "1551434678-8b9415af4a45", // Mobile Technology
+      "1552664736-46f2a69b7bef", // E-commerce
+      "1556761175-4b46a572b786", // SaaS Platform
+      "1553877522-43269d4ea984", // Cybersecurity
+      "1551434678-e17c5bd9a51b", // Blockchain
+      "1552664736-46f2a69b7bef", // IoT Devices
+      "1556761175-4b46a572b786", // Robotics
+      "1553877522-43269d4ea984", // Green Energy
+      "1551434678-e17c5bd9a51b", // Sustainable Tech
+      "1552664736-46f2a69b7bef", // Medical Devices
+      "1556761175-4b46a572b786", // EdTech
+      "1553877522-43269d4ea984", // Real Estate Tech
+      "1551434678-e17c5bd9a51b", // Logistics
+      "1552664736-46f2a69b7bef", // Supply Chain
+      "1556761175-4b46a572b786", // Manufacturing
+      "1553877522-43269d4ea984", // Aerospace
+      "1551434678-e17c5bd9a51b", // Automotive
+      "1552664736-46f2a69b7bef", // Entertainment Tech
+      "1460925895917-afdab827c52f", // Software Development
+      "1551288049-bebda4e38f71", // Consulting
+      "1551836022-deb1028da3cc", // Product Design
+      "1550439062-609e153127ce", // Marketing
+      "1485827404703-89b55fcc595e", // Analytics
+      "1532187863486-abf9dbad1b69", // Healthcare Innovation
+      "1473341304170-971dccb5ac1e", // Renewable Energy
+      "1633356122102-3fe601e05bd2", // Cryptocurrency
+      "1574323347407-f5e1ad6d020b", // AgTech
+      "1563013544-824ae1b704d3", // FinTech Innovation
     ];
 
     const seedIndex = (proposal.id || 0) % imageSeeds.length;
@@ -671,7 +710,8 @@
             </h3>
             <p class="text-pe-muted mt-2">
               {#if proposals.length === 0}
-                The database is empty. Proposals will appear here once they are created.
+                The database is empty. Proposals will appear here once they are
+                created.
               {:else}
                 Try adjusting your filters to see more proposals.
               {/if}
@@ -685,7 +725,9 @@
               </button>
             {/if}
             {#if error}
-              <div class="mt-4 p-4 rounded-pe-lg bg-red-500/10 border border-red-500/20">
+              <div
+                class="mt-4 p-4 rounded-pe-lg bg-red-500/10 border border-red-500/20"
+              >
                 <p class="text-red-400 text-sm">{error}</p>
               </div>
             {/if}
@@ -716,32 +758,37 @@
                     style="filter: drop-shadow(0 12px 24px rgba(0,0,0,0.4));"
                   />
 
-                  <!-- Heart/Favorite Button -->
-                  <button
-                    class="heart-btn absolute top-4 right-4 focus-ring"
-                    on:click={(e) => toggleFavorite(product.id, e)}
-                    aria-pressed={product.favorite}
-                    aria-label={product.favorite
-                      ? "Remove from favorites"
-                      : "Add to favorites"}
-                  >
-                    <svg
-                      class="w-5 h-5 transition-colors"
-                      class:text-red-500={product.favorite}
-                      class:fill-red-500={product.favorite}
-                      class:text-white={!product.favorite}
-                      fill={product.favorite ? "currentColor" : "none"}
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      stroke-width="1.5"
+                  <!-- Action Buttons -->
+                  <div class="absolute top-4 right-4 flex gap-2 z-10">
+                    <!-- Heart/Favorite Button -->
+                    <button
+                      type="button"
+                      class="heart-btn focus-ring"
+                      on:click={(e) => toggleFavorite(product.id, e)}
+                      on:mousedown|stopPropagation
+                      aria-pressed={product.favorite}
+                      aria-label={product.favorite
+                        ? "Remove from favorites"
+                        : "Add to favorites"}
                     >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-                      />
-                    </svg>
-                  </button>
+                      <svg
+                        class="w-5 h-5 transition-colors"
+                        class:text-red-500={product.favorite}
+                        class:fill-red-500={product.favorite}
+                        class:text-white={!product.favorite}
+                        fill={product.favorite ? "currentColor" : "none"}
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
                 <!-- Product Info -->
@@ -758,7 +805,8 @@
                       </p>
                     </div>
                     <span
-                      class={"px-3 py-1 rounded-pe border text-xs font-semibold uppercase tracking-wide " + getStatusBadgeClasses(product.status)}
+                      class={"px-3 py-1 rounded-pe border text-xs font-semibold uppercase tracking-wide " +
+                        getStatusBadgeClasses(product.status)}
                     >
                       {product.status}
                     </span>

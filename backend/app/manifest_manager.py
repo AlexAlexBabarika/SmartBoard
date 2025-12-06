@@ -34,9 +34,31 @@ _latest_manifest_cid: Optional[str] = INITIAL_MANIFEST_CID
 
 def _generate_manifest_file() -> Optional[Path]:
     """Create a temporary manifest.json from the current proposals."""
+    from .utils import get_current_storacha_space
+    from sqlalchemy import or_
+    
     db = SessionLocal()
     try:
-        proposals = db.query(Proposal).order_by(Proposal.created_at.desc()).all()
+        # Filter by current Storacha space
+        current_space = get_current_storacha_space()
+        query = db.query(Proposal)
+        
+        proposals = query.order_by(Proposal.created_at.desc()).all()
+        
+        # Filter by space in Python (SQLite JSON support varies)
+        if current_space:
+            filtered_proposals = []
+            for proposal in proposals:
+                meta = proposal.proposal_metadata or {}
+                space = meta.get("storacha_space")
+                # Only include proposals from current space
+                if space == current_space:
+                    filtered_proposals.append(proposal)
+            proposals = filtered_proposals
+            logger.info(f"Generating manifest for Storacha space: {current_space} ({len(proposals)} proposals)")
+        else:
+            # If no space set, include all (backward compatibility)
+            logger.info(f"No Storacha space set, including all {len(proposals)} proposals in manifest")
         manifest = []
         for proposal in proposals:
             manifest_entry = {

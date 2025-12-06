@@ -124,6 +124,20 @@ STARTUP_SEARCH_SOURCES=demo,producthunt
 # ANTHROPIC_API_KEY=sk-ant-your-key-here
 
 # ===========================================
+# ElevenLabs Voice API Configuration
+# ===========================================
+# Get your ElevenLabs API key from: https://elevenlabs.io/app/settings/api-keys
+# ELEVENLABS_API_KEY=your-elevenlabs-api-key-here
+
+# Optional: Voice ID to use (default: Rachel - 21m00Tcm4TlvDq8ikWAM)
+# ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM
+
+# Optional: Model to use for text-to-speech
+# Available models on free tier: eleven_turbo_v2_5 (fast), eleven_multilingual_v2 (multilingual)
+# Default: eleven_turbo_v2_5
+# ELEVENLABS_MODEL=eleven_turbo_v2_5
+
+# ===========================================
 # Optional: Logging Configuration
 # ===========================================
 # LOG_LEVEL=INFO

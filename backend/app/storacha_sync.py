@@ -28,7 +28,7 @@ from .db import SessionLocal
 from .models import Proposal as DBProposal
 from .research_pipeline_adapter import run_research_pipeline
 from .manifest_manager import schedule_manifest_refresh
-from .utils import clean_cid
+from .utils import clean_cid, get_current_storacha_space
 
 logger = logging.getLogger(__name__)
 
@@ -349,6 +349,11 @@ def sync_proposal_from_manifest(
     metadata["synced_from"] = "storacha_manifest"
     metadata["synced_at"] = datetime.utcnow().isoformat()
     
+    # Add current Storacha space to metadata
+    current_space = get_current_storacha_space()
+    if current_space:
+        metadata["storacha_space"] = current_space
+    
     try:
         # Create proposal in database
         result = _create_proposal_in_db(
@@ -410,6 +415,11 @@ def sync_proposal_from_cid(
         "synced_at": datetime.utcnow().isoformat(),
         "source_cid": cid
     }
+    
+    # Add current Storacha space to metadata
+    current_space = get_current_storacha_space()
+    if current_space:
+        proposal_metadata["storacha_space"] = current_space
     
     try:
         # Create proposal in database

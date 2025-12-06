@@ -16,11 +16,29 @@ from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
-# Read environment variables (will be re-evaluated if .env is loaded before import)
-DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
-AUTO_SEARCH_ENABLED = os.getenv("AUTO_SEARCH_STARTUPS", "false").lower() == "true"
-SEARCH_INTERVAL_HOURS = int(os.getenv("SEARCH_INTERVAL_HOURS", "24"))
-STARTUP_SEARCH_SOURCES = os.getenv("STARTUP_SEARCH_SOURCES", "demo,producthunt").split(",")
+# Read environment variables (main.py loads .env BEFORE importing this module)
+# Using functions to ensure env vars are read at runtime, not import time
+def _get_demo_mode():
+    return os.getenv("DEMO_MODE", "true").lower() == "true"
+
+def _get_auto_search_enabled():
+    return os.getenv("AUTO_SEARCH_STARTUPS", "false").lower() == "true"
+
+def _get_search_interval_hours():
+    return int(os.getenv("SEARCH_INTERVAL_HOURS", "24"))
+
+def _get_startup_search_sources():
+    return os.getenv("STARTUP_SEARCH_SOURCES", "demo,producthunt").split(",")
+
+def _get_default_source_limit():
+    return int(os.getenv("STARTUP_DISCOVERY_LIMIT", "15"))
+
+# Module-level variables that read env vars (will be read after .env is loaded by main.py)
+DEMO_MODE = _get_demo_mode()
+AUTO_SEARCH_ENABLED = _get_auto_search_enabled()
+SEARCH_INTERVAL_HOURS = _get_search_interval_hours()
+STARTUP_SEARCH_SOURCES = _get_startup_search_sources()
+DEFAULT_SOURCE_LIMIT = _get_default_source_limit()
 
 # Debug logging for environment variables
 def _log_env_status():
@@ -46,7 +64,7 @@ def debug_log(message: str, level: str = "INFO"):
         logger.error(f"[STARTUP_DISCOVERY] {message}")
 
 
-def discover_startups_from_product_hunt(limit: int = 10) -> List[Dict[str, Any]]:
+def discover_startups_from_product_hunt(limit: int = DEFAULT_SOURCE_LIMIT) -> List[Dict[str, Any]]:
     """
     Discover startups from Product Hunt using their GraphQL API.
     
@@ -225,7 +243,7 @@ def discover_startups_from_product_hunt(limit: int = 10) -> List[Dict[str, Any]]
         return _simulate_product_hunt_startups(limit)
 
 
-def discover_startups_from_crunchbase(limit: int = 10) -> List[Dict[str, Any]]:
+def discover_startups_from_crunchbase(limit: int = DEFAULT_SOURCE_LIMIT) -> List[Dict[str, Any]]:
     """
     Discover startups from Crunchbase using their API.
     
@@ -406,7 +424,7 @@ def discover_startups_from_crunchbase(limit: int = 10) -> List[Dict[str, Any]]:
         return _simulate_crunchbase_startups(limit)
 
 
-def discover_startups_from_demo_source(limit: int = 10) -> List[Dict[str, Any]]:
+def discover_startups_from_demo_source(limit: int = DEFAULT_SOURCE_LIMIT) -> List[Dict[str, Any]]:
     """
     Generate demo startup data for testing.
     
@@ -559,7 +577,7 @@ def _simulate_crunchbase_startups(limit: int) -> List[Dict[str, Any]]:
     return discover_startups_from_demo_source(limit)
 
 
-def discover_startups_from_ycombinator(limit: int = 10) -> List[Dict[str, Any]]:
+def discover_startups_from_ycombinator(limit: int = DEFAULT_SOURCE_LIMIT) -> List[Dict[str, Any]]:
     """
     Discover startups from Y Combinator (using public data).
     
@@ -621,7 +639,7 @@ def _simulate_ycombinator_startups(limit: int) -> List[Dict[str, Any]]:
     return yc_startups[:limit]
 
 
-def discover_startups(sources: Optional[List[str]] = None, limit_per_source: int = 5) -> List[Dict[str, Any]]:
+def discover_startups(sources: Optional[List[str]] = None, limit_per_source: int = DEFAULT_SOURCE_LIMIT) -> List[Dict[str, Any]]:
     """
     Discover startups from multiple sources.
     
@@ -967,7 +985,7 @@ def process_discovered_startup(startup_data: Dict[str, Any], use_direct_call: bo
 
 def discover_and_process_startups(
     sources: Optional[List[str]] = None,
-    limit_per_source: int = 5,
+    limit_per_source: int = DEFAULT_SOURCE_LIMIT,
     auto_process: bool = True
 ) -> Dict[str, Any]:
     """

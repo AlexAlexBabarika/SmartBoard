@@ -66,6 +66,9 @@ tqdm
 jiter
 distro
 
+# Voice/Speech
+elevenlabs
+
 # Google AI
 google
 google-genai
