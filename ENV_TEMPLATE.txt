@@ -25,6 +25,27 @@ LLM_MODEL=gpt-4
 # Optional: override CLI binary name
 STORACHA_CLI=storacha
 
+# Storacha Manifest Configuration
+# Automatically generate and upload manifest.json to Storacha
+STORACHA_MANIFEST_AUTO=true
+STORACHA_MANIFEST_ASYNC=true
+STORACHA_NO_WRAP=true
+
+# Storacha Auto-Sync Configuration
+# Enable automatic syncing of proposals from Storacha manifest
+STORACHA_AUTO_SYNC=false
+
+# How often to sync from Storacha manifest (in hours)
+# Default: 24 (once per day)
+STORACHA_SYNC_INTERVAL_HOURS=24
+
+# Optional: Specific manifest CID to sync from
+# If not set, uses the latest manifest CID from manifest_manager
+# STORACHA_SYNC_MANIFEST_CID=bafy...
+
+# Skip proposals that already exist in database (recommended: true)
+STORACHA_SYNC_SKIP_EXISTING=true
+
 # ===========================================
 # NEO Blockchain Configuration
 # ===========================================

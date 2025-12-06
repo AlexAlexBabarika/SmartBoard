@@ -191,8 +191,9 @@
     const safetyTimeout = setTimeout(() => {
       if (loading) {
         loading = false;
-        // Fall back to sample data if backend unavailable
-        proposals = sampleProducts;
+        error = "Backend unavailable. Please check if the server is running.";
+        // Don't use sample data on timeout - show empty state instead
+        proposals = [];
       }
     }, 5000);
 
@@ -205,20 +206,25 @@
         const fetchedProposals = await proposalAPI.getProposals();
         clearTimeout(safetyTimeout);
 
-        if (Array.isArray(fetchedProposals) && fetchedProposals.length > 0) {
+        if (Array.isArray(fetchedProposals)) {
+          // Use fetched proposals (even if empty - this is valid when database is clean)
           proposals = fetchedProposals;
         } else {
-          // Use sample products if no proposals
-          proposals = sampleProducts;
+          // Invalid response format
+          proposals = [];
+          error = "Invalid response from server";
         }
       } else {
-        // Use sample products
-        proposals = sampleProducts;
+        // API not available
+        proposals = [];
+        error = "API not available";
       }
     } catch (e) {
       clearTimeout(safetyTimeout);
-      // Use sample data on error
-      proposals = sampleProducts;
+      // On error, show empty state instead of sample data
+      proposals = [];
+      error = `Failed to load proposals: ${e.message || "Unknown error"}`;
+      console.error("Error loading proposals:", e);
     } finally {
       clearTimeout(safetyTimeout);
       loading = false;
@@ -646,15 +652,32 @@
               />
             </svg>
             <h3 class="text-xl font-display font-semibold text-pe-text mt-4">
-              No proposals found
+              {#if proposals.length === 0}
+                No proposals in database
+              {:else}
+                No proposals found
+              {/if}
             </h3>
-            <p class="text-pe-muted mt-2">Try adjusting your filters</p>
-            <button
-              class="mt-4 btn-accent-pe"
-              on:click={() => filtersStore.clearAll()}
-            >
-              Clear all filters
-            </button>
+            <p class="text-pe-muted mt-2">
+              {#if proposals.length === 0}
+                The database is empty. Proposals will appear here once they are created.
+              {:else}
+                Try adjusting your filters to see more proposals.
+              {/if}
+            </p>
+            {#if proposals.length > 0}
+              <button
+                class="mt-4 btn-accent-pe"
+                on:click={() => filtersStore.clearAll()}
+              >
+                Clear all filters
+              </button>
+            {/if}
+            {#if error}
+              <div class="mt-4 p-4 rounded-pe-lg bg-red-500/10 border border-red-500/20">
+                <p class="text-red-400 text-sm">{error}</p>
+              </div>
+            {/if}
           </div>
         {:else}
           <!-- Product Grid -->

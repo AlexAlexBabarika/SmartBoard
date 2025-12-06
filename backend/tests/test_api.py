@@ -11,6 +11,7 @@ from unittest.mock import patch, MagicMock
 from backend.app.main import app, get_db, get_neo_client
 from backend.app.models import Base
 from backend.app.db import get_db as original_get_db
+from backend.app import research_pipeline_adapter as research_adapter
 
 # Create test database
 TEST_DATABASE_URL = "sqlite:///./test.db"
@@ -297,3 +298,113 @@ def test_finalize_nonexistent_proposal():
     """Test finalizing a non-existent proposal."""
     response = client.post("/finalize", json={"proposal_id": 999})
     assert response.status_code == 404
+
+
+@patch("backend.app.main.run_research_pipeline")
+@patch("backend.app.main.get_neo_client")
+def test_submit_memo_runs_research_pipeline(mock_get_neo_client, mock_run_research):
+    """Pipeline should be invoked for memo submissions."""
+    mock_client = MagicMock()
+    mock_client.create_proposal.return_value = {"tx_hash": "0x123", "proposal_id": 42}
+    mock_get_neo_client.return_value = mock_client
+    mock_run_research.side_effect = lambda payload, source=None: payload
+
+    memo_data = {
+        "title": "Pipeline Invocation",
+        "summary": "Ensure pipeline runs",
+        "cid": "QmPipeline",
+        "confidence": 70,
+        "metadata": {"source": "test"}
+    }
+
+    response = client.post("/submit-memo", json=memo_data)
+    assert response.status_code == 200
+    mock_run_research.assert_called_once()
+
+
+@patch("backend.app.main.run_research_pipeline")
+@patch("backend.app.main.get_neo_client")
+def test_submit_memo_carries_research_metadata(mock_get_neo_client, mock_run_research):
+    """Pipeline metadata should be preserved in stored proposal."""
+    mock_client = MagicMock()
+    mock_client.create_proposal.return_value = {"tx_hash": "0x456", "proposal_id": 99}
+    mock_get_neo_client.return_value = mock_client
+
+    def _augment(payload, source=None):
+        meta = payload.get("metadata", {}).copy()
+        meta["_research"] = {"tag": "research_pipeline_v1", "note": "ok"}
+        payload["metadata"] = meta
+        return payload
+
+    mock_run_research.side_effect = _augment
+
+    memo_data = {
+        "title": "Pipeline Metadata",
+        "summary": "Ensure metadata persists",
+        "cid": "QmMeta",
+        "confidence": 80,
+        "metadata": {"sector": "tech"}
+    }
+
+    response = client.post("/submit-memo", json=memo_data)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["metadata"]["_research"]["tag"] == "research_pipeline_v1"
+
+
+def test_run_research_pipeline_fail_open(monkeypatch):
+    """Adapter should fail-open when pipeline raises."""
+    payload = {
+        "title": "Fail Open",
+        "summary": "Keep original",
+        "cid": "QmFail",
+        "confidence": 60,
+        "metadata": {}
+    }
+
+    original_process = research_adapter._pipeline_process
+
+    def _boom(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    research_adapter._pipeline_process = _boom
+    try:
+        result = research_adapter.run_research_pipeline(payload, source="test")
+        assert result == payload
+    finally:
+        research_adapter._pipeline_process = original_process
+
+
+@patch("backend.app.main.schedule_manifest_refresh")
+@patch("backend.app.main.run_research_pipeline")
+@patch("backend.app.main.get_neo_client")
+def test_submit_memo_refreshes_manifest(mock_get_neo_client, mock_run_research, mock_manifest):
+    """Submitting a memo should trigger manifest refresh."""
+    mock_client = MagicMock()
+    mock_client.create_proposal.return_value = {"tx_hash": "0x789", "proposal_id": 7}
+    mock_get_neo_client.return_value = mock_client
+    mock_run_research.side_effect = lambda payload, source=None: payload
+
+    memo_data = {
+        "title": "Manifest Refresh",
+        "summary": "Trigger manifest update",
+        "cid": "QmManifest",
+        "confidence": 77,
+        "metadata": {}
+    }
+
+    response = client.post("/submit-memo", json=memo_data)
+    assert response.status_code == 200
+    mock_manifest.assert_called_once()
+
+
+@patch("backend.app.main.sync_from_manifest")
+@patch("backend.app.main.get_manifest_cid")
+def test_get_proposals_syncs_from_manifest(mock_get_manifest_cid, mock_sync_manifest):
+    """Fetching proposals should attempt to sync from Storacha manifest when available."""
+    mock_get_manifest_cid.return_value = "bafytestcid"
+    mock_sync_manifest.return_value = {"success": True, "synced": 0}
+
+    response = client.get("/proposals")
+    assert response.status_code == 200
+    mock_sync_manifest.assert_called_once()
