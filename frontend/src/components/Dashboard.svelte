@@ -9,6 +9,7 @@
     confidenceHistogram,
     sampleProducts,
   } from "../stores/filters.js";
+  import FloatingNetwork from "./FloatingNetwork.svelte";
 
   const dispatch = createEventDispatcher();
 
@@ -17,6 +18,9 @@
   let error = null;
   let sidebarOpen = true;
   let searchTimeout;
+  let mainContentElement;
+  let contentWidth = 1200;
+  let contentHeight = 800;
 
   // Subscribe to stores
   $: filters = $filtersStore;
@@ -185,6 +189,19 @@
 
   onMount(async () => {
     await loadProposals();
+
+    // Update content dimensions for floating network
+    const updateDimensions = () => {
+      if (mainContentElement) {
+        contentWidth = mainContentElement.clientWidth;
+        contentHeight = mainContentElement.clientHeight;
+      }
+    };
+
+    updateDimensions();
+    window.addEventListener("resize", updateDimensions);
+
+    return () => window.removeEventListener("resize", updateDimensions);
   });
 
   async function loadProposals() {
@@ -251,6 +268,28 @@
 
   function toggleSidebar() {
     sidebarOpen = !sidebarOpen;
+  }
+
+  // Generate ASCII balls for votes
+  function generateVoteBalls(yesVotes, noVotes, maxBalls = 20) {
+    const totalVotes = yesVotes + noVotes;
+    if (totalVotes === 0) {
+      return { yesBalls: "", noBalls: "", total: 0 };
+    }
+
+    // Scale votes to maxBalls if total exceeds it
+    let yesCount = yesVotes;
+    let noCount = noVotes;
+    if (totalVotes > maxBalls) {
+      yesCount = Math.round((yesVotes / totalVotes) * maxBalls);
+      noCount = maxBalls - yesCount;
+    }
+
+    // Green ball (●) for yes votes, red ball (●) for no votes
+    const yesBalls = "●".repeat(yesCount);
+    const noBalls = "●".repeat(noCount);
+
+    return { yesBalls, noBalls, total: yesCount + noCount };
   }
 </script>
 
@@ -494,9 +533,24 @@
 
     <!-- Main Content -->
     <main class="flex-1 min-h-screen lg:ml-0">
-      <div class="p-6 lg:p-8">
+      <div
+        bind:this={mainContentElement}
+        class="p-6 lg:p-8 relative overflow-hidden"
+      >
+        <!-- Floating Vote Balls Background -->
+        <div
+          class="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-30"
+        >
+          <FloatingNetwork
+            width={contentWidth}
+            height={contentHeight}
+            yesVotes={12}
+            noVotes={8}
+            className="w-full h-full"
+          />
+        </div>
         <!-- Header -->
-        <div class="mb-8">
+        <div class="mb-8 relative z-10">
           <!-- Mobile sidebar toggle -->
           <button
             class="lg:hidden mb-4 p-2 rounded-pe bg-pe-card border border-pe-border hover:bg-pe-card-hover transition-colors"
@@ -631,7 +685,7 @@
           </div>
         {:else if products.length === 0}
           <!-- Empty State -->
-          <div class="text-center py-20">
+          <div class="text-center py-20 relative z-10">
             <svg
               class="w-24 h-24 mx-auto text-pe-muted/30"
               fill="none"
@@ -658,7 +712,9 @@
           </div>
         {:else}
           <!-- Product Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div
+            class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 relative z-10"
+          >
             {#each products as product, index (product.id)}
               <article
                 class="card-pe group cursor-pointer {getStaggerClass(index)}"
@@ -748,32 +804,32 @@
 
                   <!-- Vote Bar -->
                   {#if true}
-                    {@const yesVotes = product.yes_votes || 0}
-                    {@const noVotes = product.no_votes || 0}
-                    {@const totalVotes = yesVotes + noVotes}
-                    {@const yesPercentage =
-                      totalVotes > 0 ? (yesVotes / totalVotes) * 100 : 50}
-                    {@const noPercentage =
-                      totalVotes > 0 ? (noVotes / totalVotes) * 100 : 50}
-                    {@const isEqual = yesVotes === noVotes && totalVotes > 0}
+                  {@const yesVotes = product.yes_votes || 0}
+                  {@const noVotes = product.no_votes || 0}
+                  {@const totalVotes = yesVotes + noVotes}
+                  {@const yesPercentage =
+                    totalVotes > 0 ? (yesVotes / totalVotes) * 100 : 50}
+                  {@const noPercentage =
+                    totalVotes > 0 ? (noVotes / totalVotes) * 100 : 50}
+                  {@const isEqual = yesVotes === noVotes && totalVotes > 0}
 
-                    <div class="mt-3">
-                      <div class="flex items-center justify-between mb-1">
-                        <span class="text-xs text-pe-muted">Votes</span>
-                        <span class="text-xs text-pe-muted">
-                          {yesVotes} Yes / {noVotes} No
-                        </span>
-                      </div>
-                      <div
-                        class="relative h-2 bg-pe-chip-bg rounded-full overflow-hidden"
-                      >
-                        {#if isEqual}
-                          <!-- Equal votes: green on left, red on right, white line in center -->
-                          <div class="absolute inset-0 flex">
-                            <div class="flex-1 bg-pe-accent"></div>
-                            <div class="w-0.5 bg-white"></div>
-                            <div class="flex-1 bg-red-500"></div>
-                          </div>
+                  <div class="mt-3">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-xs text-pe-muted">Votes</span>
+                      <span class="text-xs text-pe-muted">
+                        {yesVotes} Yes / {noVotes} No
+                      </span>
+                    </div>
+                    <div
+                      class="relative h-2 bg-pe-chip-bg rounded-full overflow-hidden"
+                    >
+                      {#if isEqual}
+                        <!-- Equal votes: green on left, red on right, white line in center -->
+                        <div class="absolute inset-0 flex">
+                          <div class="flex-1 bg-pe-accent"></div>
+                          <div class="w-0.5 bg-white"></div>
+                          <div class="flex-1 bg-red-500"></div>\
+                        </div>
                         {:else if totalVotes > 0}
                           <!-- Unequal votes: proportional bars -->
                           <div class="absolute inset-0 flex">

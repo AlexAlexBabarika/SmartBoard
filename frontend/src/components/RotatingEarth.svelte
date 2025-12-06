@@ -126,25 +126,25 @@
     // Green animated dots (only on land)
     const rgbDots = [];
     const numRgbDots = 100;
-    
+
     // Function to generate green dots only on land
     const generateGreenDotsOnLand = () => {
       rgbDots.length = 0; // Clear existing dots
       let dotsGenerated = 0;
       let attempts = 0;
       const maxAttempts = 5000;
-      
+
       while (dotsGenerated < numRgbDots && attempts < maxAttempts) {
         attempts++;
         const lng = Math.random() * 360 - 180;
         const lat = (Math.random() - 0.5) * 180;
         const point = [lng, lat];
-        
+
         // Exclude Antarctica (latitude below -60)
         if (lat < -60) {
           continue;
         }
-        
+
         // Check if point is on land
         let isOnLand = false;
         if (landFeatures) {
@@ -155,7 +155,7 @@
             }
           }
         }
-        
+
         if (isOnLand) {
           // Generate different shades of green with smaller color range
           // Green component: 150-220 (narrower range of greens)
@@ -164,46 +164,102 @@
           const greenBase = 150 + Math.random() * 70; // 150-220
           const redTint = Math.random() * 30; // 0-30
           const blueTint = Math.random() * 40; // 0-40
-          
+
           const color = [
             Math.floor(redTint),
             Math.floor(greenBase),
-            Math.floor(blueTint)
+            Math.floor(blueTint),
           ];
-          
+
+          // Randomize initial phase so dots spark at different times
+          const initialPhase =
+            Math.random() < 0.33
+              ? "fadeIn"
+              : Math.random() < 0.5
+                ? "spark"
+                : "fadeOut";
+          const initialOpacity =
+            initialPhase === "spark"
+              ? 1
+              : initialPhase === "fadeOut"
+                ? Math.random()
+                : 0;
+
           rgbDots.push({
             lng,
             lat,
             color,
-            opacity: Math.random(), // Start with random opacity
-            visible: Math.random() > 0.5, // Random initial visibility
-            fadeSpeed: 0.02 + Math.random() * 0.03, // Slightly faster fade
-            changeTimer: Math.random() * 80 + 40 // Shorter lifetime: 40-120 frames
+            opacity: initialOpacity,
+            phase: initialPhase, // 'fadeIn', 'spark', 'fadeOut'
+            fadeInSpeed: 0.001 + Math.random() * 0.002, // Very slow fade in (0.001-0.003 per frame)
+            fadeOutSpeed: 0.0016 + Math.random() * 0.0024, // Very slow fade out (0.0016-0.004 per frame)
+            sparkDuration: 150 + Math.random() * 200, // Spark for 150-350 frames (5x slower)
+            sparkTimer:
+              initialPhase === "spark" ? 150 + Math.random() * 200 : 0,
+            lifetime: Math.random() * 1000 + 750, // Total lifetime: 750-1750 frames (5x slower)
+            blastWaves: [], // Array to store expanding blast waves
           });
           dotsGenerated++;
         }
       }
-      
-      console.log(`Generated ${dotsGenerated} green dots on land after ${attempts} attempts`);
+
+      console.log(
+        `Generated ${dotsGenerated} green dots on land after ${attempts} attempts`,
+      );
     };
 
-    // Animate RGB dots appearance/disappearance
+    // Animate RGB dots with spark and blast wave effect
     const animateRgbDots = () => {
       rgbDots.forEach((dot) => {
-        dot.changeTimer--;
-        
-        if (dot.changeTimer <= 0) {
-          // Toggle visibility
-          dot.visible = !dot.visible;
-          dot.changeTimer = Math.random() * 80 + 40; // Shorter lifetime: 40-120 frames
+        if (dot.phase === "fadeIn") {
+          // Slowly fade in
+          dot.opacity = Math.min(1, dot.opacity + dot.fadeInSpeed);
+          if (dot.opacity >= 1) {
+            dot.phase = "spark";
+            dot.sparkTimer = dot.sparkDuration;
+            // Create a new blast wave when sparking starts
+            dot.blastWaves.push({
+              radius: 0,
+              opacity: 1,
+              maxRadius: 50 + Math.random() * 30, // Max radius of 50-80 pixels
+              speed: 0.3 + Math.random() * 0.2, // Expansion speed (5x slower)
+              fadeSpeed: 0.006 + Math.random() * 0.004, // Fade speed (5x slower)
+            });
+          }
+        } else if (dot.phase === "spark") {
+          // Spark at full brightness
+          dot.opacity = 1;
+          dot.sparkTimer--;
+          if (dot.sparkTimer <= 0) {
+            dot.phase = "fadeOut";
+          }
+        } else if (dot.phase === "fadeOut") {
+          // Slowly fade out
+          dot.opacity = Math.max(0, dot.opacity - dot.fadeOutSpeed);
+          if (dot.opacity <= 0) {
+            // Reset for next cycle
+            dot.opacity = 0;
+            dot.phase = "fadeIn";
+            dot.lifetime = Math.random() * 1000 + 750; // New random lifetime (5x slower)
+            dot.blastWaves = []; // Clear blast waves
+          }
         }
-        
-        if (dot.visible) {
-          // Fade in
-          dot.opacity = Math.min(1, dot.opacity + dot.fadeSpeed);
-        } else {
-          // Fade out
-          dot.opacity = Math.max(0, dot.opacity - dot.fadeSpeed);
+
+        // Animate blast waves
+        dot.blastWaves = dot.blastWaves.filter((wave) => {
+          wave.radius += wave.speed;
+          wave.opacity -= wave.fadeSpeed;
+          return wave.opacity > 0 && wave.radius < wave.maxRadius;
+        });
+
+        // Occasionally trigger new spark cycles
+        dot.lifetime--;
+        if (dot.lifetime <= 0 && dot.phase === "fadeOut" && dot.opacity <= 0) {
+          // Start a new spark cycle
+          dot.phase = "fadeIn";
+          dot.opacity = 0;
+          dot.lifetime = Math.random() * 1000 + 750; // 5x slower
+          dot.blastWaves = [];
         }
       });
     };
@@ -217,7 +273,13 @@
 
       // Draw ocean (globe background)
       context.beginPath();
-      context.arc(containerWidth / 2, containerHeight / 2, currentScale, 0, 2 * Math.PI);
+      context.arc(
+        containerWidth / 2,
+        containerHeight / 2,
+        currentScale,
+        0,
+        2 * Math.PI,
+      );
       context.fillStyle = "#000000";
       context.fill();
       context.strokeStyle = "#ffffff";
@@ -255,7 +317,13 @@
             projected[1] <= containerHeight
           ) {
             context.beginPath();
-            context.arc(projected[0], projected[1], 1.2 * scaleFactor, 0, 2 * Math.PI);
+            context.arc(
+              projected[0],
+              projected[1],
+              1.2 * scaleFactor,
+              0,
+              2 * Math.PI,
+            );
             context.fillStyle = "#999999";
             context.fill();
           }
@@ -270,22 +338,74 @@
             projected[0] >= 0 &&
             projected[0] <= containerWidth &&
             projected[1] >= 0 &&
-            projected[1] <= containerHeight &&
-            dot.opacity > 0
+            projected[1] <= containerHeight
           ) {
-            const size = 2.5 * scaleFactor * dot.opacity;
-            context.beginPath();
-            context.arc(projected[0], projected[1], size, 0, 2 * Math.PI);
-            context.fillStyle = `rgba(${dot.color[0]}, ${dot.color[1]}, ${dot.color[2]}, ${dot.opacity})`;
-            context.fill();
-            
-            // Add glow effect for green dots
-            context.shadowBlur = 12 * dot.opacity;
-            context.shadowColor = `rgba(${dot.color[0]}, ${dot.color[1]}, ${dot.color[2]}, ${dot.opacity * 0.6})`;
-            context.beginPath();
-            context.arc(projected[0], projected[1], size * 1.8, 0, 2 * Math.PI);
-            context.fill();
-            context.shadowBlur = 0;
+            // Draw blast waves first (so they appear behind the dot)
+            if (dot.blastWaves && dot.blastWaves.length > 0) {
+              dot.blastWaves.forEach((wave) => {
+                if (wave.opacity > 0) {
+                  // Draw expanding green blast wave
+                  context.beginPath();
+                  context.arc(
+                    projected[0],
+                    projected[1],
+                    wave.radius * scaleFactor,
+                    0,
+                    2 * Math.PI,
+                  );
+                  context.strokeStyle = `rgba(${dot.color[0]}, ${dot.color[1]}, ${dot.color[2]}, ${wave.opacity * 0.6})`;
+                  context.lineWidth = 2 * scaleFactor;
+                  context.stroke();
+
+                  // Add inner glow for blast wave
+                  context.beginPath();
+                  context.arc(
+                    projected[0],
+                    projected[1],
+                    wave.radius * scaleFactor,
+                    0,
+                    2 * Math.PI,
+                  );
+                  context.strokeStyle = `rgba(${dot.color[0]}, ${dot.color[1]}, ${dot.color[2]}, ${wave.opacity * 0.3})`;
+                  context.lineWidth = 4 * scaleFactor;
+                  context.stroke();
+                }
+              });
+            }
+
+            // Draw the dot itself
+            if (dot.opacity > 0) {
+              // Enhanced spark effect: brighter and larger during spark phase
+              const isSparkPhase = dot.phase === "spark";
+              const sparkIntensity = isSparkPhase ? 1.3 : 1.0; // 30% brighter during spark
+              const sparkSize = isSparkPhase ? 1.4 : 1.0; // 40% larger during spark
+
+              // Brighten colors during spark
+              const r = Math.min(255, dot.color[0] * sparkIntensity);
+              const g = Math.min(255, dot.color[1] * sparkIntensity);
+              const b = Math.min(255, dot.color[2] * sparkIntensity);
+
+              const size = 2.5 * scaleFactor * dot.opacity * sparkSize;
+              context.beginPath();
+              context.arc(projected[0], projected[1], size, 0, 2 * Math.PI);
+              context.fillStyle = `rgba(${r}, ${g}, ${b}, ${dot.opacity})`;
+              context.fill();
+
+              // Enhanced glow effect - much stronger during spark
+              const glowIntensity = isSparkPhase ? 2.5 : 1.0;
+              context.shadowBlur = 12 * dot.opacity * glowIntensity;
+              context.shadowColor = `rgba(${r}, ${g}, ${b}, ${dot.opacity * 0.8 * glowIntensity})`;
+              context.beginPath();
+              context.arc(
+                projected[0],
+                projected[1],
+                size * (isSparkPhase ? 2.2 : 1.8),
+                0,
+                2 * Math.PI,
+              );
+              context.fill();
+              context.shadowBlur = 0;
+            }
           }
         });
       }
@@ -312,7 +432,9 @@
           });
         });
 
-        console.log(`[v0] Total dots generated: ${totalDots} across ${landFeatures.features.length} land features`);
+        console.log(
+          `[v0] Total dots generated: ${totalDots} across ${landFeatures.features.length} land features`,
+        );
 
         // Generate green dots on land after land features are loaded
         generateGreenDotsOnLand();
@@ -376,7 +498,10 @@
     const handleWheel = (event) => {
       event.preventDefault();
       const scaleFactor = event.deltaY > 0 ? 0.9 : 1.1;
-      const newRadius = Math.max(radius * 0.5, Math.min(radius * 3, projection.scale() * scaleFactor));
+      const newRadius = Math.max(
+        radius * 0.5,
+        Math.min(radius * 3, projection.scale() * scaleFactor),
+      );
       projection.scale(newRadius);
       render();
     };
@@ -405,9 +530,13 @@
 </script>
 
 {#if error}
-  <div class="dark flex items-center justify-center bg-pe-card rounded-pe-lg p-8 {className}">
+  <div
+    class="dark flex items-center justify-center bg-pe-card rounded-pe-lg p-8 {className}"
+  >
     <div class="text-center">
-      <p class="dark text-red-500 font-semibold mb-2">Error loading Earth visualization</p>
+      <p class="dark text-red-500 font-semibold mb-2">
+        Error loading Earth visualization
+      </p>
       <p class="dark text-pe-muted text-sm">{error}</p>
     </div>
   </div>
@@ -418,8 +547,10 @@
       class="w-full h-full bg-transparent dark"
       style="object-fit: contain;"
     />
-    {#if !className.includes('opacity')}
-      <div class="absolute bottom-4 left-4 text-xs text-pe-muted px-2 py-1 rounded-md dark bg-pe-panel">
+    {#if !className.includes("opacity")}
+      <div
+        class="absolute bottom-4 left-4 text-xs text-pe-muted px-2 py-1 rounded-md dark bg-pe-panel"
+      >
         Drag to rotate • Scroll to zoom
       </div>
     {/if}

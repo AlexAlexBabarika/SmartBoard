@@ -105,7 +105,9 @@
 
   <!-- Features Section -->
   <section class="relative z-10 py-20 px-4 sm:px-6 lg:px-8 bg-pe-panel/30 backdrop-blur-sm">
-    <div class="max-w-7xl mx-auto">
+    <!-- Soft gradient fade at top border for smooth transition -->
+    <div class="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-transparent via-pe-panel/10 to-pe-panel/30 pointer-events-none"></div>
+    <div class="max-w-7xl mx-auto relative">
       <div class="text-center mb-16">
         <h2
           class="font-display font-bold text-4xl sm:text-5xl text-pe-text mb-4"
