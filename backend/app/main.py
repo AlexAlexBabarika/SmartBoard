@@ -7,7 +7,7 @@ import os
 import asyncio
 from typing import List, Optional
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -34,6 +34,11 @@ from .startup_discovery import (
     discover_and_process_startups,
     AUTO_SEARCH_ENABLED,
     SEARCH_INTERVAL_HOURS
+)
+from .storacha_sync import (
+    sync_from_manifest,
+    sync_from_cids,
+    get_existing_cids
 )
 
 # Configure logging (if not already configured)
@@ -180,6 +185,16 @@ class DiscoverStartupsRequest(BaseModel):
     sources: Optional[List[str]] = None
     limit_per_source: int = 5
     auto_process: bool = True
+
+
+class SyncFromManifestRequest(BaseModel):
+    manifest_cid: str
+    skip_existing: bool = True
+
+
+class SyncFromCidsRequest(BaseModel):
+    cids: List[str]
+    skip_existing: bool = True
 
 
 # API Endpoints
@@ -689,6 +704,124 @@ async def finalize_nested(proposal_id: int, db: Session = Depends(get_db)):
         logger.error(f"Error finalizing proposal: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Failed to finalize proposal: {str(e)}")
+
+
+@app.post("/sync/storacha/manifest")
+async def sync_from_manifest_endpoint(
+    request: SyncFromManifestRequest,
+    background_tasks: BackgroundTasks,
+    async_mode: bool = Query(True, description="Run sync in background")
+):
+    """
+    Sync proposals from a manifest.json file stored on Storacha/IPFS.
+    
+    The manifest should be a JSON array of proposal objects with:
+    - cid: IPFS CID
+    - title: Proposal title
+    - summary: Executive summary
+    - confidence: Confidence score (0-100)
+    - metadata: Optional metadata dict
+    
+    Args:
+        async_mode: If True, run in background. If False, wait for completion.
+    """
+    logger.info(f"Syncing from manifest: {request.manifest_cid}")
+    
+    if async_mode:
+        # Run in background to avoid blocking
+        def run_sync():
+            return sync_from_manifest(
+                manifest_cid=request.manifest_cid,
+                skip_existing=request.skip_existing
+            )
+        
+        background_tasks.add_task(run_sync)
+        
+        return {
+            "status": "started",
+            "message": "Sync from manifest started in background",
+            "manifest_cid": request.manifest_cid
+        }
+    else:
+        # Run synchronously
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            executor,
+            lambda: sync_from_manifest(
+                manifest_cid=request.manifest_cid,
+                skip_existing=request.skip_existing
+            )
+        )
+        return result
+
+
+@app.post("/sync/storacha/cids")
+async def sync_from_cids_endpoint(
+    request: SyncFromCidsRequest,
+    background_tasks: BackgroundTasks,
+    async_mode: bool = Query(True, description="Run sync in background")
+):
+    """
+    Sync proposals from a list of IPFS CIDs.
+    
+    For each CID, the system will:
+    1. Download the PDF from IPFS
+    2. Extract metadata (title, summary, confidence)
+    3. Check if CID already exists in database
+    4. Add only if not already present (if skip_existing=True)
+    
+    Args:
+        async_mode: If True, run in background. If False, wait for completion.
+    """
+    logger.info(f"Syncing from {len(request.cids)} CIDs")
+    
+    if async_mode:
+        # Run in background to avoid blocking
+        def run_sync():
+            return sync_from_cids(
+                cids=request.cids,
+                skip_existing=request.skip_existing
+            )
+        
+        background_tasks.add_task(run_sync)
+        
+        return {
+            "status": "started",
+            "message": "Sync from CIDs started in background",
+            "cid_count": len(request.cids)
+        }
+    else:
+        # Run synchronously
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            executor,
+            lambda: sync_from_cids(
+                cids=request.cids,
+                skip_existing=request.skip_existing
+            )
+        )
+        return result
+
+
+@app.get("/sync/storacha/existing")
+async def get_existing_cids_endpoint():
+    """
+    Get list of all IPFS CIDs currently in the database.
+    Useful for checking what's already synced.
+    """
+    try:
+        cids = get_existing_cids()
+        return {
+            "success": True,
+            "count": len(cids),
+            "cids": cids
+        }
+    except Exception as e:
+        logger.error(f"Error getting existing CIDs: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get existing CIDs: {str(e)}"
+        )
 
 
 if __name__ == "__main__":
