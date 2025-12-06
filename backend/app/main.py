@@ -3,6 +3,17 @@ FastAPI Backend for AI Investment Scout DAO
 Main application entry point with all API endpoints.
 """
 
+from .startup_discovery import (
+    discover_startups,
+    discover_and_process_startups,
+    AUTO_SEARCH_ENABLED,
+    SEARCH_INTERVAL_HOURS
+)
+from .email_service import send_congratulations_email as send_email, send_proposal_outcome_email
+from .neo_client import NeoClient
+from .models import Proposal as DBProposal, Vote as DBVote, User as DBUser
+from .db import get_db, init_db, SessionLocal
+from .blockchain_listener import BlockchainListener
 import os
 import asyncio
 from typing import List, Optional
@@ -27,16 +38,9 @@ else:
     logger = logging.getLogger(__name__)
     logger.debug("Loaded .env from current directory")
 
-from .db import get_db, init_db
-from .models import Proposal as DBProposal, Vote as DBVote, User as DBUser
-from .neo_client import NeoClient
-from .email_service import send_congratulations_email as send_email
-from .startup_discovery import (
-    discover_startups,
-    discover_and_process_startups,
-    AUTO_SEARCH_ENABLED,
-    SEARCH_INTERVAL_HOURS
-)
+# Check demo mode
+DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
+
 
 # Configure logging (if not already configured)
 if not logging.getLogger().handlers:
@@ -50,7 +54,8 @@ app = FastAPI(
 )
 
 # Thread pool executor for CPU-bound or blocking operations
-executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="startup_processor")
+executor = ThreadPoolExecutor(
+    max_workers=2, thread_name_prefix="startup_processor")
 
 # CORS middleware for frontend
 app.add_middleware(
@@ -64,12 +69,14 @@ app.add_middleware(
 # Initialize NEO client (lazy initialization to avoid blocking startup)
 neo_client = None
 
+
 def get_neo_client():
     """Get or initialize NEO client (lazy initialization)."""
     global neo_client
     if neo_client is None:
         neo_client = NeoClient()
     return neo_client
+
 
 # Initialize database on startup
 background_task_running = False
@@ -78,18 +85,20 @@ background_task_running = False
 async def periodic_startup_discovery():
     """Background task that periodically discovers and processes startups."""
     global background_task_running
-    
+
     if not AUTO_SEARCH_ENABLED:
-        logger.info("Automatic startup discovery is disabled (AUTO_SEARCH_STARTUPS=false)")
+        logger.info(
+            "Automatic startup discovery is disabled (AUTO_SEARCH_STARTUPS=false)")
         return
-    
+
     if background_task_running:
         logger.warning("Background discovery task already running")
         return
-    
+
     background_task_running = True
-    logger.info(f"Starting periodic startup discovery (interval: {SEARCH_INTERVAL_HOURS} hours)")
-    
+    logger.info(
+        f"Starting periodic startup discovery (interval: {SEARCH_INTERVAL_HOURS} hours)")
+
     import time
     while True:
         try:
@@ -100,10 +109,11 @@ async def periodic_startup_discovery():
                 executor,
                 lambda: discover_and_process_startups(auto_process=True)
             )
-            logger.info(f"Discovery cycle complete: {results['discovered']} discovered, {results['processed']} processed")
+            logger.info(
+                f"Discovery cycle complete: {results['discovered']} discovered, {results['processed']} processed")
         except Exception as e:
             logger.error(f"Error in periodic discovery: {e}")
-        
+
         # Wait for the specified interval
         await asyncio.sleep(SEARCH_INTERVAL_HOURS * 3600)
 
@@ -113,12 +123,13 @@ async def startup_event():
     logger.info("Initializing database...")
     init_db()
     logger.info("Backend started successfully")
-    
+
     # Debug: Check environment variable value
     auto_search_env = os.getenv("AUTO_SEARCH_STARTUPS", "not set")
     logger.info(f"Environment variable AUTO_SEARCH_STARTUPS={auto_search_env}")
-    logger.info(f"AUTO_SEARCH_ENABLED={AUTO_SEARCH_ENABLED} (type: {type(AUTO_SEARCH_ENABLED)})")
-    
+    logger.info(
+        f"AUTO_SEARCH_ENABLED={AUTO_SEARCH_ENABLED} (type: {type(AUTO_SEARCH_ENABLED)})")
+
     # Start background discovery task if enabled
     if AUTO_SEARCH_ENABLED:
         logger.info("Starting automatic startup discovery background task...")
@@ -126,6 +137,17 @@ async def startup_event():
     else:
         logger.info("Automatic startup discovery is disabled")
         logger.info(f"To enable, set AUTO_SEARCH_STARTUPS=true in .env file")
+
+    # Start blockchain event listener for email notifications
+    if not DEMO_MODE:
+        logger.info(
+            "Starting blockchain event listener for proposal finalization...")
+        neo_client = get_neo_client()
+        listener = BlockchainListener(neo_client, SessionLocal)
+        asyncio.create_task(listener.start())
+    else:
+        logger.info(
+            "Blockchain listener disabled in DEMO_MODE - email notifications will be triggered via API endpoints")
 
 
 @app.on_event("shutdown")
@@ -212,8 +234,9 @@ async def discover_startups_endpoint(
     Manually trigger startup discovery.
     Can run synchronously or asynchronously in background.
     """
-    logger.info(f"Manual startup discovery triggered: sources={request.sources}, auto_process={request.auto_process}")
-    
+    logger.info(
+        f"Manual startup discovery triggered: sources={request.sources}, auto_process={request.auto_process}")
+
     if request.auto_process:
         # Run in background thread pool to avoid blocking
         async def run_discovery():
@@ -226,7 +249,7 @@ async def discover_startups_endpoint(
                     auto_process=True
                 )
             )
-        
+
         background_tasks.add_task(run_discovery)
         return {
             "status": "started",
@@ -270,15 +293,15 @@ def submit_proposal_direct(
     """
     Direct database submission function (bypasses HTTP).
     Can be called from within the same process (e.g., from startup_discovery).
-    
+
     Returns:
         Dict with proposal id and other fields (same format as HTTP endpoint)
     """
     from .db import SessionLocal
     import time
-    
+
     logger.info(f"Submitting proposal directly to database: {title}")
-    
+
     db = SessionLocal()
     try:
         # Calculate deadline (7 days from now, in block timestamp)
@@ -405,14 +428,14 @@ async def get_proposals(db: Session = Depends(get_db)):
     """Get list of all proposals with on-chain status."""
     try:
         logger.info("Fetching proposals from database...")
-        
+
         # Query database directly (SQLAlchemy handles async properly with check_same_thread=False)
         # No need for thread pool - SQLite with check_same_thread=False works fine
         proposals = db.query(DBProposal).order_by(
             DBProposal.created_at.desc()).all()
-        
+
         logger.info(f"Found {len(proposals)} proposals in database")
-        
+
         result = [
             ProposalResponse(
                 id=p.id,
@@ -429,7 +452,7 @@ async def get_proposals(db: Session = Depends(get_db)):
             )
             for p in proposals
         ]
-        
+
         logger.info(f"Returning {len(result)} proposals")
         return result
     except Exception as e:
@@ -603,9 +626,11 @@ async def vote_nested(proposal_id: int, request: VoteRequestNoId, db: Session = 
 
 
 @app.post("/finalize")
-async def finalize(request: FinalizeRequest, db: Session = Depends(get_db)):
+async def finalize(request: FinalizeRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Finalize a proposal (close voting and determine outcome).
+    Note: In production mode, email notifications are triggered by blockchain events.
+    In demo mode, emails are sent via background tasks.
     """
     logger.info(f"Finalizing proposal: {request.proposal_id}")
 
@@ -634,6 +659,20 @@ async def finalize(request: FinalizeRequest, db: Session = Depends(get_db)):
         logger.info(
             f"Proposal finalized: ID={request.proposal_id}, status={proposal.status}")
 
+        # In demo mode, send emails via API. In production, blockchain listener handles it
+        if DEMO_MODE:
+            background_tasks.add_task(
+                send_proposal_outcome_emails,
+                proposal.id,
+                proposal.title,
+                proposal.status,
+                proposal.yes_votes,
+                proposal.no_votes
+            )
+        else:
+            logger.info(
+                "Email notifications will be triggered by blockchain event listener")
+
         return {
             "success": True,
             "proposal_id": proposal.id,
@@ -651,9 +690,11 @@ async def finalize(request: FinalizeRequest, db: Session = Depends(get_db)):
 
 
 @app.post("/proposals/{proposal_id}/finalize")
-async def finalize_nested(proposal_id: int, db: Session = Depends(get_db)):
+async def finalize_nested(proposal_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Finalize a proposal (close voting and determine outcome) - nested route.
+    Note: In production mode, email notifications are triggered by blockchain events.
+    In demo mode, emails are sent via background tasks.
     """
     logger.info(f"Finalizing proposal: {proposal_id}")
 
@@ -682,6 +723,20 @@ async def finalize_nested(proposal_id: int, db: Session = Depends(get_db)):
         logger.info(
             f"Proposal finalized: ID={proposal_id}, status={proposal.status}")
 
+        # In demo mode, send emails via API. In production, blockchain listener handles it
+        if DEMO_MODE:
+            background_tasks.add_task(
+                send_proposal_outcome_emails,
+                proposal.id,
+                proposal.title,
+                proposal.status,
+                proposal.yes_votes,
+                proposal.no_votes
+            )
+        else:
+            logger.info(
+                "Email notifications will be triggered by blockchain event listener")
+
         return {
             "success": True,
             "proposal_id": proposal.id,
@@ -704,16 +759,17 @@ async def create_or_update_user(request: CreateUserRequest, background_tasks: Ba
     Create or update a user with wallet address and optional email.
     Sends a congratulations email if email is provided and is new or updated.
     """
-    logger.info(f"Creating/updating user: wallet={request.wallet_address}, email={request.email}")
-    
+    logger.info(
+        f"Creating/updating user: wallet={request.wallet_address}, email={request.email}")
+
     try:
         # Check if user already exists
         existing_user = db.query(DBUser).filter(
             DBUser.wallet_address == request.wallet_address
         ).first()
-        
+
         email_was_added = False
-        
+
         if existing_user:
             # Update existing user
             if request.email and request.email != existing_user.email:
@@ -735,7 +791,7 @@ async def create_or_update_user(request: CreateUserRequest, background_tasks: Ba
             if request.email:
                 email_was_added = True
             logger.info(f"Created new user: {request.wallet_address}")
-        
+
         # Send email in background if email was added
         if email_was_added and request.email:
             background_tasks.add_task(
@@ -743,14 +799,14 @@ async def create_or_update_user(request: CreateUserRequest, background_tasks: Ba
                 request.wallet_address,
                 request.email
             )
-        
+
         return {
             "success": True,
             "wallet_address": request.wallet_address,
             "email": request.email,
             "email_sent": email_was_added and request.email is not None
         }
-    
+
     except Exception as e:
         db.rollback()
         logger.error(f"Error creating/updating user: {str(e)}")
@@ -765,9 +821,72 @@ def send_congratulations_email_task(wallet_address: str, email: str):
     """
     try:
         send_email(wallet_address, email)
-        logger.info(f"Congratulations email sent to {email} for wallet {wallet_address}")
+        logger.info(
+            f"Congratulations email sent to {email} for wallet {wallet_address}")
     except Exception as e:
-        logger.error(f"Failed to send congratulations email to {email}: {str(e)}")
+        logger.error(
+            f"Failed to send congratulations email to {email}: {str(e)}")
+
+
+def send_proposal_outcome_emails(
+    proposal_id: int,
+    proposal_title: str,
+    status: str,
+    yes_votes: int,
+    no_votes: int
+):
+    """
+    Send email notifications to all users who voted on a proposal when it's finalized.
+    This function is called as a background task.
+    """
+    try:
+        from .db import SessionLocal
+
+        db = SessionLocal()
+        try:
+            # Get all votes for this proposal
+            votes = db.query(DBVote).filter(
+                DBVote.proposal_id == proposal_id
+            ).all()
+
+            if not votes:
+                logger.info(
+                    f"No votes found for proposal {proposal_id}, skipping email notifications")
+                return
+
+            # Get unique voter addresses
+            voter_addresses = list(set([vote.voter_address for vote in votes]))
+
+            # Get email addresses for voters
+            users = db.query(DBUser).filter(
+                DBUser.wallet_address.in_(voter_addresses),
+                DBUser.email.isnot(None)
+            ).all()
+
+            emails_sent = 0
+            for user in users:
+                if user.email:
+                    try:
+                        send_proposal_outcome_email(
+                            email=user.email,
+                            proposal_title=proposal_title,
+                            proposal_id=proposal_id,
+                            status=status,
+                            yes_votes=yes_votes,
+                            no_votes=no_votes
+                        )
+                        emails_sent += 1
+                    except Exception as e:
+                        logger.error(
+                            f"Failed to send outcome email to {user.email}: {str(e)}")
+
+            logger.info(
+                f"Sent proposal outcome emails to {emails_sent} voters for proposal {proposal_id} ({status})"
+            )
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"Failed to send proposal outcome emails: {str(e)}")
 
 
 if __name__ == "__main__":
