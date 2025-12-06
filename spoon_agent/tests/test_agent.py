@@ -128,15 +128,23 @@ def test_render_memo_html():
     assert "Investment Memorandum" in html
 
 
-def test_html_to_pdf_fallback():
-    """Test PDF generation with fallback when WeasyPrint unavailable."""
-    html = "<html><body><h1>Test</h1></body></html>"
+def test_html_to_pdf():
+    """Test PDF generation using reportlab."""
+    html = "<html><body><h1>Test</h1><p>This is a test paragraph.</p></body></html>"
     
-    # WeasyPrint might not be installed in test environment
+    # reportlab should be installed (it's in requirements.txt)
     result = html_to_pdf(html)
     
     assert isinstance(result, bytes)
     assert len(result) > 0
+    # PDF files should start with %PDF, but if reportlab is not installed,
+    # the function falls back to returning HTML bytes
+    try:
+        import reportlab
+        assert result.startswith(b'%PDF')
+    except ImportError:
+        # If reportlab not installed, it returns HTML
+        assert b'<html>' in result or b'Test' in result
 
 
 def test_upload_to_ipfs_simulation():
@@ -147,27 +155,27 @@ def test_upload_to_ipfs_simulation():
         cid = upload_to_ipfs(test_data, "test.pdf")
         
         assert isinstance(cid, str)
-        assert cid.startswith("bafybei")
+        assert cid.startswith("bafysim")
         assert len(cid) > 10
 
 
-@patch('agent_utils.requests.post')
-def test_upload_to_ipfs_real(mock_post):
-    """Test IPFS upload with web3.storage API."""
-    mock_response = MagicMock()
-    mock_response.json.return_value = {"cid": "bafytest123"}
-    mock_post.return_value = mock_response
+@patch('agent_utils.shutil.which', return_value='/usr/bin/storacha')
+@patch('agent_utils.subprocess.run')
+@patch('agent_utils.DEMO_MODE', False)
+def test_upload_to_ipfs_real(mock_run, _mock_which):
+    """Test IPFS upload with Storacha CLI."""
+    mock_run.return_value = MagicMock(
+        returncode=0,
+        stdout="Upload complete: https://storacha.link/ipfs/bafytest123",
+        stderr=""
+    )
     
     test_data = b"Test file content"
     
-    with patch.dict('os.environ', {
-        'WEB3_STORAGE_KEY': 'test-token',
-        'DEMO_MODE': 'false'
-    }):
-        cid = upload_to_ipfs(test_data, "test.pdf")
-        
-        assert cid == "bafytest123"
-        mock_post.assert_called_once()
+    cid = upload_to_ipfs(test_data, "test.pdf")
+    
+    assert cid == "bafytest123"
+    mock_run.assert_called_once()
 
 
 @patch('agent_utils.requests.post')

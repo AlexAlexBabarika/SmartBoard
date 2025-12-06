@@ -16,8 +16,9 @@ npm install
 cd ..
 
 # 3. Start backend (Terminal 1)
-cd backend
-uvicorn app.main:app --reload
+# Run from project root (not from backend/ directory)
+source .venv/bin/activate
+uvicorn backend.app.main:app --reload
 ```
 
 Open new terminal:
@@ -68,9 +69,16 @@ DEMO_MODE=false
 
 ### Add Real IPFS Storage
 
-Get free token from https://web3.storage and add to `.env`:
+Storacha uses a CLI (no API tokens). Install and log in:
 ```bash
-WEB3_STORAGE_KEY=your-token-here
+npm i -g @storacha/cli
+storacha login
+storacha space create dao   # or choose an existing space
+storacha space use dao
+```
+Optional `.env` override if your CLI binary name differs:
+```bash
+STORACHA_CLI=storacha
 ```
 
 ### Compile Smart Contract

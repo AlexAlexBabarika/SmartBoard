@@ -4,24 +4,41 @@ Main application entry point with all API endpoints.
 """
 
 import os
+import asyncio
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException, Depends
+from pathlib import Path
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
-from app.db import get_db, init_db
-from app.models import Proposal as DBProposal, Vote as DBVote
-from app.neo_client import NeoClient
+# Load environment variables FIRST, before importing modules that read env vars
+env_path = Path(__file__).parent.parent.parent / '.env'
+if env_path.exists():
+    load_dotenv(env_path)
+    logger = logging.getLogger(__name__)
+    logger.debug(f"Loaded .env from: {env_path}")
+else:
+    load_dotenv()  # Fallback to current directory
+    logger = logging.getLogger(__name__)
+    logger.debug("Loaded .env from current directory")
 
-# Load environment variables
-load_dotenv()
+from .db import get_db, init_db
+from .models import Proposal as DBProposal, Vote as DBVote
+from .neo_client import NeoClient
+from .startup_discovery import (
+    discover_startups,
+    discover_and_process_startups,
+    AUTO_SEARCH_ENABLED,
+    SEARCH_INTERVAL_HOURS
+)
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Configure logging (if not already configured)
+if not logging.getLogger().handlers:
+    logging.basicConfig(level=logging.INFO)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -29,6 +46,9 @@ app = FastAPI(
     description="Backend API for decentralized investment proposal evaluation",
     version="1.0.0"
 )
+
+# Thread pool executor for CPU-bound or blocking operations
+executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="startup_processor")
 
 # CORS middleware for frontend
 app.add_middleware(
@@ -39,15 +59,79 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize NEO client
-neo_client = NeoClient()
+# Initialize NEO client (lazy initialization to avoid blocking startup)
+neo_client = None
+
+def get_neo_client():
+    """Get or initialize NEO client (lazy initialization)."""
+    global neo_client
+    if neo_client is None:
+        neo_client = NeoClient()
+    return neo_client
 
 # Initialize database on startup
+background_task_running = False
+
+
+async def periodic_startup_discovery():
+    """Background task that periodically discovers and processes startups."""
+    global background_task_running
+    
+    if not AUTO_SEARCH_ENABLED:
+        logger.info("Automatic startup discovery is disabled (AUTO_SEARCH_STARTUPS=false)")
+        return
+    
+    if background_task_running:
+        logger.warning("Background discovery task already running")
+        return
+    
+    background_task_running = True
+    logger.info(f"Starting periodic startup discovery (interval: {SEARCH_INTERVAL_HOURS} hours)")
+    
+    import time
+    while True:
+        try:
+            logger.info("Running scheduled startup discovery...")
+            # Run in thread pool to avoid blocking the event loop
+            loop = asyncio.get_event_loop()
+            results = await loop.run_in_executor(
+                executor,
+                lambda: discover_and_process_startups(auto_process=True)
+            )
+            logger.info(f"Discovery cycle complete: {results['discovered']} discovered, {results['processed']} processed")
+        except Exception as e:
+            logger.error(f"Error in periodic discovery: {e}")
+        
+        # Wait for the specified interval
+        await asyncio.sleep(SEARCH_INTERVAL_HOURS * 3600)
+
+
 @app.on_event("startup")
 async def startup_event():
     logger.info("Initializing database...")
     init_db()
     logger.info("Backend started successfully")
+    
+    # Debug: Check environment variable value
+    auto_search_env = os.getenv("AUTO_SEARCH_STARTUPS", "not set")
+    logger.info(f"Environment variable AUTO_SEARCH_STARTUPS={auto_search_env}")
+    logger.info(f"AUTO_SEARCH_ENABLED={AUTO_SEARCH_ENABLED} (type: {type(AUTO_SEARCH_ENABLED)})")
+    
+    # Start background discovery task if enabled
+    if AUTO_SEARCH_ENABLED:
+        logger.info("Starting automatic startup discovery background task...")
+        asyncio.create_task(periodic_startup_discovery())
+    else:
+        logger.info("Automatic startup discovery is disabled")
+        logger.info(f"To enable, set AUTO_SEARCH_STARTUPS=true in .env file")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown."""
+    logger.info("Shutting down thread pool executor...")
+    executor.shutdown(wait=True)
+    logger.info("Shutdown complete")
 
 
 # Pydantic models for request/response
@@ -82,8 +166,20 @@ class VoteRequest(BaseModel):
     vote: int  # 1 for yes, 0 for no
 
 
+class VoteRequestNoId(BaseModel):
+    """Vote request without proposal_id (extracted from URL path)"""
+    voter_address: str
+    vote: int  # 1 for yes, 0 for no
+
+
 class FinalizeRequest(BaseModel):
     proposal_id: int
+
+
+class DiscoverStartupsRequest(BaseModel):
+    sources: Optional[List[str]] = None
+    limit_per_source: int = 5
+    auto_process: bool = True
 
 
 # API Endpoints
@@ -94,8 +190,144 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "AI Investment Scout DAO Backend",
-        "demo_mode": os.getenv("DEMO_MODE", "true") == "true"
+        "demo_mode": os.getenv("DEMO_MODE", "true") == "true",
+        "auto_search_enabled": AUTO_SEARCH_ENABLED,
+        "search_interval_hours": SEARCH_INTERVAL_HOURS
     }
+
+
+@app.post("/discover-startups")
+async def discover_startups_endpoint(
+    request: DiscoverStartupsRequest,
+    background_tasks: BackgroundTasks
+):
+    """
+    Manually trigger startup discovery.
+    Can run synchronously or asynchronously in background.
+    """
+    logger.info(f"Manual startup discovery triggered: sources={request.sources}, auto_process={request.auto_process}")
+    
+    if request.auto_process:
+        # Run in background thread pool to avoid blocking
+        async def run_discovery():
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                executor,
+                lambda: discover_and_process_startups(
+                    sources=request.sources,
+                    limit_per_source=request.limit_per_source,
+                    auto_process=True
+                )
+            )
+        
+        background_tasks.add_task(run_discovery)
+        return {
+            "status": "started",
+            "message": "Startup discovery and processing started in background",
+            "sources": request.sources or ["demo"],
+            "limit_per_source": request.limit_per_source
+        }
+    else:
+        # Run synchronously in thread pool (just discovery, no processing)
+        loop = asyncio.get_event_loop()
+        startups = await loop.run_in_executor(
+            executor,
+            discover_startups,
+            request.sources,
+            request.limit_per_source
+        )
+        return {
+            "status": "completed",
+            "discovered": len(startups),
+            "startups": startups
+        }
+
+
+@app.get("/discover-startups/status")
+async def discovery_status():
+    """Get status of automatic startup discovery."""
+    return {
+        "auto_search_enabled": AUTO_SEARCH_ENABLED,
+        "search_interval_hours": SEARCH_INTERVAL_HOURS,
+        "background_task_running": background_task_running
+    }
+
+
+def submit_proposal_direct(
+    title: str,
+    summary: str,
+    cid: str,
+    confidence: int,
+    metadata: dict
+) -> dict:
+    """
+    Direct database submission function (bypasses HTTP).
+    Can be called from within the same process (e.g., from startup_discovery).
+    
+    Returns:
+        Dict with proposal id and other fields (same format as HTTP endpoint)
+    """
+    from .db import SessionLocal
+    import time
+    
+    logger.info(f"Submitting proposal directly to database: {title}")
+    
+    db = SessionLocal()
+    try:
+        # Calculate deadline (7 days from now, in block timestamp)
+        deadline = int(time.time()) + (7 * 24 * 60 * 60)
+
+        # Submit to NEO blockchain
+        tx_result = get_neo_client().create_proposal(
+            title=title,
+            ipfs_hash=cid,
+            deadline=deadline,
+            confidence=confidence
+        )
+
+        # Store in local database
+        db_proposal = DBProposal(
+            title=title,
+            summary=summary,
+            ipfs_cid=cid,
+            confidence=confidence,
+            status="active",
+            yes_votes=0,
+            no_votes=0,
+            proposal_metadata=metadata,
+            tx_hash=tx_result.get("tx_hash"),
+            on_chain_id=tx_result.get("proposal_id"),
+            deadline=deadline
+        )
+
+        db.add(db_proposal)
+        db.commit()
+        db.refresh(db_proposal)
+
+        logger.info(
+            f"✅ Proposal created directly: ID={db_proposal.id}, TX={tx_result.get('tx_hash')}")
+
+        return {
+            "id": db_proposal.id,
+            "title": db_proposal.title,
+            "summary": db_proposal.summary,
+            "ipfs_cid": db_proposal.ipfs_cid,
+            "confidence": db_proposal.confidence,
+            "status": db_proposal.status,
+            "yes_votes": db_proposal.yes_votes,
+            "no_votes": db_proposal.no_votes,
+            "created_at": db_proposal.created_at.isoformat(),
+            "deadline": db_proposal.deadline,
+            "metadata": db_proposal.proposal_metadata
+        }
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Error submitting proposal directly: {str(e)}")
+        import traceback
+        logger.debug(f"Traceback: {traceback.format_exc()}")
+        raise
+    finally:
+        db.close()
 
 
 @app.post("/submit-memo", response_model=ProposalResponse)
@@ -105,20 +337,20 @@ async def submit_memo(request: SubmitMemoRequest, db: Session = Depends(get_db))
     Stores in database and submits on-chain transaction.
     """
     logger.info(f"Submitting memo: {request.title}")
-    
+
     try:
         # Calculate deadline (7 days from now, in block timestamp)
         import time
         deadline = int(time.time()) + (7 * 24 * 60 * 60)
-        
+
         # Submit to NEO blockchain
-        tx_result = neo_client.create_proposal(
+        tx_result = get_neo_client().create_proposal(
             title=request.title,
             ipfs_hash=request.cid,
             deadline=deadline,
             confidence=request.confidence
         )
-        
+
         # Store in local database
         db_proposal = DBProposal(
             title=request.title,
@@ -133,13 +365,14 @@ async def submit_memo(request: SubmitMemoRequest, db: Session = Depends(get_db))
             on_chain_id=tx_result.get("proposal_id"),
             deadline=deadline
         )
-        
+
         db.add(db_proposal)
         db.commit()
         db.refresh(db_proposal)
-        
-        logger.info(f"Proposal created: ID={db_proposal.id}, TX={tx_result.get('tx_hash')}")
-        
+
+        logger.info(
+            f"Proposal created: ID={db_proposal.id}, TX={tx_result.get('tx_hash')}")
+
         return ProposalResponse(
             id=db_proposal.id,
             title=db_proposal.title,
@@ -153,43 +386,62 @@ async def submit_memo(request: SubmitMemoRequest, db: Session = Depends(get_db))
             deadline=db_proposal.deadline,
             metadata=db_proposal.proposal_metadata
         )
-        
+
     except Exception as e:
         logger.error(f"Error submitting memo: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to submit proposal: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to submit proposal: {str(e)}")
 
 
 @app.get("/proposals", response_model=List[ProposalResponse])
 async def get_proposals(db: Session = Depends(get_db)):
     """Get list of all proposals with on-chain status."""
-    proposals = db.query(DBProposal).order_by(DBProposal.created_at.desc()).all()
-    
-    return [
-        ProposalResponse(
-            id=p.id,
-            title=p.title,
-            summary=p.summary,
-            ipfs_cid=p.ipfs_cid,
-            confidence=p.confidence,
-            status=p.status,
-            yes_votes=p.yes_votes,
-            no_votes=p.no_votes,
-            created_at=p.created_at.isoformat(),
-            deadline=p.deadline,
-            metadata=p.proposal_metadata
+    try:
+        logger.info("Fetching proposals from database...")
+        
+        # Query database directly (SQLAlchemy handles async properly with check_same_thread=False)
+        # No need for thread pool - SQLite with check_same_thread=False works fine
+        proposals = db.query(DBProposal).order_by(
+            DBProposal.created_at.desc()).all()
+        
+        logger.info(f"Found {len(proposals)} proposals in database")
+        
+        result = [
+            ProposalResponse(
+                id=p.id,
+                title=p.title,
+                summary=p.summary,
+                ipfs_cid=p.ipfs_cid,
+                confidence=p.confidence,
+                status=p.status,
+                yes_votes=p.yes_votes,
+                no_votes=p.no_votes,
+                created_at=p.created_at.isoformat(),
+                deadline=p.deadline,
+                metadata=p.proposal_metadata
+            )
+            for p in proposals
+        ]
+        
+        logger.info(f"Returning {len(result)} proposals")
+        return result
+    except Exception as e:
+        logger.error(f"Error fetching proposals: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch proposals: {str(e)}"
         )
-        for p in proposals
-    ]
 
 
 @app.get("/proposals/{proposal_id}", response_model=ProposalResponse)
 async def get_proposal(proposal_id: int, db: Session = Depends(get_db)):
     """Get detailed information about a specific proposal."""
-    proposal = db.query(DBProposal).filter(DBProposal.id == proposal_id).first()
-    
+    proposal = db.query(DBProposal).filter(
+        DBProposal.id == proposal_id).first()
+
     if not proposal:
         raise HTTPException(status_code=404, detail="Proposal not found")
-    
+
     return ProposalResponse(
         id=proposal.id,
         title=proposal.title,
@@ -211,33 +463,36 @@ async def vote(request: VoteRequest, db: Session = Depends(get_db)):
     Submit a vote on a proposal.
     Records vote on-chain and updates local tally.
     """
-    logger.info(f"Processing vote: proposal={request.proposal_id}, voter={request.voter_address}, vote={request.vote}")
-    
+    logger.info(
+        f"Processing vote: proposal={request.proposal_id}, voter={request.voter_address}, vote={request.vote}")
+
     # Validate proposal exists
-    proposal = db.query(DBProposal).filter(DBProposal.id == request.proposal_id).first()
+    proposal = db.query(DBProposal).filter(
+        DBProposal.id == request.proposal_id).first()
     if not proposal:
         raise HTTPException(status_code=404, detail="Proposal not found")
-    
+
     if proposal.status != "active":
         raise HTTPException(status_code=400, detail="Proposal is not active")
-    
+
     # Check if voter already voted
     existing_vote = db.query(DBVote).filter(
         DBVote.proposal_id == request.proposal_id,
         DBVote.voter_address == request.voter_address
     ).first()
-    
+
     if existing_vote:
-        raise HTTPException(status_code=400, detail="Voter has already voted on this proposal")
-    
+        raise HTTPException(
+            status_code=400, detail="Voter has already voted on this proposal")
+
     try:
         # Submit vote to blockchain
-        tx_result = neo_client.vote(
+        tx_result = get_neo_client().vote(
             proposal_id=proposal.on_chain_id or request.proposal_id,
             voter=request.voter_address,
             choice=request.vote
         )
-        
+
         # Record vote in database
         db_vote = DBVote(
             proposal_id=request.proposal_id,
@@ -246,28 +501,98 @@ async def vote(request: VoteRequest, db: Session = Depends(get_db)):
             tx_hash=tx_result.get("tx_hash")
         )
         db.add(db_vote)
-        
+
         # Update vote tally
         if request.vote == 1:
             proposal.yes_votes += 1
         else:
             proposal.no_votes += 1
-        
+
         db.commit()
-        
+
         logger.info(f"Vote recorded: TX={tx_result.get('tx_hash')}")
-        
+
         return {
             "success": True,
             "tx_hash": tx_result.get("tx_hash"),
             "yes_votes": proposal.yes_votes,
             "no_votes": proposal.no_votes
         }
-        
+
     except Exception as e:
         db.rollback()
         logger.error(f"Error processing vote: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to process vote: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to process vote: {str(e)}")
+
+
+@app.post("/proposals/{proposal_id}/vote")
+async def vote_nested(proposal_id: int, request: VoteRequestNoId, db: Session = Depends(get_db)):
+    """
+    Submit a vote on a proposal (nested route).
+    Records vote on-chain and updates local tally.
+    """
+    logger.info(
+        f"Processing vote: proposal={proposal_id}, voter={request.voter_address}, vote={request.vote}")
+
+    # Validate proposal exists
+    proposal = db.query(DBProposal).filter(
+        DBProposal.id == proposal_id).first()
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+
+    if proposal.status != "active":
+        raise HTTPException(status_code=400, detail="Proposal is not active")
+
+    # Check if voter already voted
+    existing_vote = db.query(DBVote).filter(
+        DBVote.proposal_id == proposal_id,
+        DBVote.voter_address == request.voter_address
+    ).first()
+
+    if existing_vote:
+        raise HTTPException(
+            status_code=400, detail="Voter has already voted on this proposal")
+
+    try:
+        # Submit vote to blockchain
+        tx_result = get_neo_client().vote(
+            proposal_id=proposal.on_chain_id or proposal_id,
+            voter=request.voter_address,
+            choice=request.vote
+        )
+
+        # Record vote in database
+        db_vote = DBVote(
+            proposal_id=proposal_id,
+            voter_address=request.voter_address,
+            vote=request.vote,
+            tx_hash=tx_result.get("tx_hash")
+        )
+        db.add(db_vote)
+
+        # Update vote tally
+        if request.vote == 1:
+            proposal.yes_votes += 1
+        else:
+            proposal.no_votes += 1
+
+        db.commit()
+
+        logger.info(f"Vote recorded: TX={tx_result.get('tx_hash')}")
+
+        return {
+            "success": True,
+            "tx_hash": tx_result.get("tx_hash"),
+            "yes_votes": proposal.yes_votes,
+            "no_votes": proposal.no_votes
+        }
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error processing vote: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to process vote: {str(e)}")
 
 
 @app.post("/finalize")
@@ -276,30 +601,32 @@ async def finalize(request: FinalizeRequest, db: Session = Depends(get_db)):
     Finalize a proposal (close voting and determine outcome).
     """
     logger.info(f"Finalizing proposal: {request.proposal_id}")
-    
-    proposal = db.query(DBProposal).filter(DBProposal.id == request.proposal_id).first()
+
+    proposal = db.query(DBProposal).filter(
+        DBProposal.id == request.proposal_id).first()
     if not proposal:
         raise HTTPException(status_code=404, detail="Proposal not found")
-    
+
     if proposal.status != "active":
         raise HTTPException(status_code=400, detail="Proposal is not active")
-    
+
     try:
         # Finalize on blockchain
-        tx_result = neo_client.finalize_proposal(
+        tx_result = get_neo_client().finalize_proposal(
             proposal_id=proposal.on_chain_id or request.proposal_id
         )
-        
+
         # Determine outcome
         if proposal.yes_votes > proposal.no_votes:
             proposal.status = "approved"
         else:
             proposal.status = "rejected"
-        
+
         db.commit()
-        
-        logger.info(f"Proposal finalized: ID={request.proposal_id}, status={proposal.status}")
-        
+
+        logger.info(
+            f"Proposal finalized: ID={request.proposal_id}, status={proposal.status}")
+
         return {
             "success": True,
             "proposal_id": proposal.id,
@@ -308,15 +635,63 @@ async def finalize(request: FinalizeRequest, db: Session = Depends(get_db)):
             "yes_votes": proposal.yes_votes,
             "no_votes": proposal.no_votes
         }
-        
+
     except Exception as e:
         db.rollback()
         logger.error(f"Error finalizing proposal: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to finalize proposal: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to finalize proposal: {str(e)}")
+
+
+@app.post("/proposals/{proposal_id}/finalize")
+async def finalize_nested(proposal_id: int, db: Session = Depends(get_db)):
+    """
+    Finalize a proposal (close voting and determine outcome) - nested route.
+    """
+    logger.info(f"Finalizing proposal: {proposal_id}")
+
+    proposal = db.query(DBProposal).filter(
+        DBProposal.id == proposal_id).first()
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+
+    if proposal.status != "active":
+        raise HTTPException(status_code=400, detail="Proposal is not active")
+
+    try:
+        # Finalize on blockchain
+        tx_result = get_neo_client().finalize_proposal(
+            proposal_id=proposal.on_chain_id or proposal_id
+        )
+
+        # Determine outcome
+        if proposal.yes_votes > proposal.no_votes:
+            proposal.status = "approved"
+        else:
+            proposal.status = "rejected"
+
+        db.commit()
+
+        logger.info(
+            f"Proposal finalized: ID={proposal_id}, status={proposal.status}")
+
+        return {
+            "success": True,
+            "proposal_id": proposal.id,
+            "status": proposal.status,
+            "tx_hash": tx_result.get("tx_hash"),
+            "yes_votes": proposal.yes_votes,
+            "no_votes": proposal.no_votes
+        }
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error finalizing proposal: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to finalize proposal: {str(e)}")
 
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("BACKEND_PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
-

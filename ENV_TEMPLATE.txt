@@ -14,11 +14,16 @@ LLM_PROVIDER=openai
 LLM_MODEL=gpt-4
 
 # ===========================================
-# IPFS Storage Configuration
+# IPFS Storage Configuration (Storacha - no API keys)
 # ===========================================
-# Get your free token at: https://web3.storage
-# Sign up, create a new token with upload permissions
-WEB3_STORAGE_KEY=your-web3-storage-api-token-here
+# Install Storacha CLI and log in:
+#   npm i -g @storacha/cli
+#   storacha login
+# Select or create a space for uploads:
+#   storacha space create dao
+#   storacha space use dao
+# Optional: override CLI binary name
+STORACHA_CLI=storacha
 
 # ===========================================
 # NEO Blockchain Configuration
@@ -55,6 +60,31 @@ SPOON_CLI_CONFIG=./spoon_agent/spoon.config.json
 # Set to 'true' to simulate blockchain and IPFS operations
 # Set to 'false' to use real APIs (requires all keys above)
 DEMO_MODE=true
+
+# ===========================================
+# Automatic Startup Discovery
+# ===========================================
+# Enable automatic startup discovery and processing
+# Set to 'true' to automatically search for startups periodically
+AUTO_SEARCH_STARTUPS=false
+
+# How often to search for startups (in hours)
+# Default: 24 (once per day)
+SEARCH_INTERVAL_HOURS=24
+
+# Sources to search for startups (comma-separated)
+# Options: demo, producthunt, crunchbase, ycombinator
+# Default: demo,producthunt
+# Note: Set DEMO_MODE=false and provide API keys for real data
+STARTUP_SEARCH_SOURCES=demo,producthunt
+
+# Optional: Product Hunt API token (for better rate limits)
+# Get from: https://api.producthunt.com/v2/oauth/applications
+# PRODUCT_HUNT_API_TOKEN=your-product-hunt-token-here
+
+# Optional: Crunchbase API key (for real Crunchbase integration)
+# Get from: https://data.crunchbase.com/
+# CRUNCHBASE_API_KEY=your-crunchbase-api-key-here
 
 # ===========================================
 # Optional: Anthropic Configuration
