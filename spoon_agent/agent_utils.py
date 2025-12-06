@@ -259,7 +259,7 @@ def render_memo_html(memo_content: Dict[str, Any], startup_data: Dict[str, Any])
 
 def html_to_pdf(html_content: str) -> bytes:
     """
-    Convert HTML to PDF using WeasyPrint.
+    Convert HTML to PDF using reportlab (pure Python, no system dependencies).
 
     Args:
         html_content: HTML string
@@ -268,45 +268,239 @@ def html_to_pdf(html_content: str) -> bytes:
         PDF bytes
     """
     try:
-        from weasyprint import HTML, CSS
-
-        # Custom CSS for better PDF rendering
-        css = CSS(string="""
-            @page {
-                size: letter;
-                margin: 1in;
-            }
-            body {
-                font-family: 'Georgia', serif;
-                line-height: 1.6;
-                color: #333;
-            }
-            h1, h2, h3 {
-                color: #1a202c;
-            }
-        """)
-
-        pdf_bytes = HTML(string=html_content).write_pdf(stylesheets=[css])
-        logger.info(f"Generated PDF: {len(pdf_bytes)} bytes")
+        from reportlab.lib.pagesizes import letter
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.lib import colors
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+        from html.parser import HTMLParser
+        import io
+        import re
+        
+        # Enhanced HTML parser to extract structure
+        class HTMLToPDFParser(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.elements = []
+                self.current_tag = None
+                self.current_text = []
+                self.in_header = False
+                self.in_paragraph = False
+                self.in_list = False
+                self.list_items = []
+                self.in_div = False
+                self.div_class = None
+                self.tag_stack = []
+                
+            def handle_starttag(self, tag, attrs):
+                self.tag_stack.append(tag)
+                attrs_dict = dict(attrs)
+                
+                if tag in ['h1', 'h2', 'h3', 'h4']:
+                    self.in_header = True
+                    self.current_tag = tag
+                    self.current_text = []
+                elif tag == 'p':
+                    self.in_paragraph = True
+                    self.current_text = []
+                elif tag in ['ul', 'ol']:
+                    self.in_list = True
+                    self.list_items = []
+                elif tag == 'li':
+                    self.current_text = []
+                elif tag == 'div':
+                    self.in_div = True
+                    self.div_class = attrs_dict.get('class', '')
+                    self.current_text = []
+            
+            def handle_endtag(self, tag):
+                if tag in self.tag_stack:
+                    self.tag_stack.remove(tag)
+                
+                if tag in ['h1', 'h2', 'h3', 'h4']:
+                    if self.current_text:
+                        text = ' '.join(self.current_text).strip()
+                        if text:
+                            self.elements.append(('heading', tag, text))
+                    self.in_header = False
+                    self.current_tag = None
+                    self.current_text = []
+                elif tag == 'p':
+                    if self.current_text:
+                        text = ' '.join(self.current_text).strip()
+                        if text:
+                            self.elements.append(('paragraph', text))
+                    self.in_paragraph = False
+                    self.current_text = []
+                elif tag in ['ul', 'ol']:
+                    if self.list_items:
+                        self.elements.append(('list', self.list_items))
+                    self.in_list = False
+                    self.list_items = []
+                elif tag == 'li':
+                    if self.current_text:
+                        text = ' '.join(self.current_text).strip()
+                        if text:
+                            self.list_items.append(text)
+                    self.current_text = []
+                elif tag == 'div':
+                    if self.current_text:
+                        text = ' '.join(self.current_text).strip()
+                        if text:
+                            # Handle special div classes
+                            if 'executive-summary' in self.div_class:
+                                self.elements.append(('paragraph', text))
+                            elif 'startup-info' in self.div_class or 'metadata' in self.div_class:
+                                # Skip metadata divs as they're handled separately
+                                pass
+                            elif 'recommendation' in self.div_class:
+                                self.elements.append(('paragraph', text))
+                            elif 'risk-item' in self.div_class:
+                                self.elements.append(('paragraph', text))
+                            elif 'swot-box' in self.div_class:
+                                # SWOT items are handled as lists
+                                pass
+                            else:
+                                # Generic div content
+                                self.elements.append(('paragraph', text))
+                    self.in_div = False
+                    self.div_class = None
+                    self.current_text = []
+            
+            def handle_data(self, data):
+                text = data.strip()
+                if text and text not in ['•', '-', '*']:  # Skip standalone bullet chars
+                    self.current_text.append(text)
+        
+        # Parse HTML
+        parser = HTMLToPDFParser()
+        parser.feed(html_content)
+        
+        # Create PDF
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=letter,
+            rightMargin=1*inch,
+            leftMargin=1*inch,
+            topMargin=1*inch,
+            bottomMargin=1*inch
+        )
+        
+        # Define custom styles
+        styles = getSampleStyleSheet()
+        
+        # Custom styles
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            textColor=colors.HexColor('#1a202c'),
+            spaceAfter=12,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        heading1_style = ParagraphStyle(
+            'CustomHeading1',
+            parent=styles['Heading1'],
+            fontSize=18,
+            textColor=colors.HexColor('#1a202c'),
+            spaceAfter=12,
+            spaceBefore=12,
+            fontName='Helvetica-Bold'
+        )
+        
+        heading2_style = ParagraphStyle(
+            'CustomHeading2',
+            parent=styles['Heading2'],
+            fontSize=14,
+            textColor=colors.HexColor('#2d3748'),
+            spaceAfter=8,
+            spaceBefore=10,
+            fontName='Helvetica-Bold'
+        )
+        
+        normal_style = ParagraphStyle(
+            'CustomNormal',
+            parent=styles['Normal'],
+            fontSize=11,
+            textColor=colors.HexColor('#333333'),
+            spaceAfter=6,
+            leading=14,
+            alignment=TA_JUSTIFY
+        )
+        
+        # Build PDF content
+        story = []
+        
+        for element_type, *args in parser.elements:
+            if element_type == 'heading':
+                tag, text = args
+                if tag == 'h1':
+                    story.append(Paragraph(text, title_style))
+                    story.append(Spacer(1, 0.3*inch))
+                elif tag == 'h2':
+                    story.append(Spacer(1, 0.2*inch))
+                    story.append(Paragraph(text, heading1_style))
+                elif tag == 'h3':
+                    story.append(Paragraph(text, heading2_style))
+            elif element_type == 'paragraph':
+                text = args[0]
+                # Clean up text
+                text = re.sub(r'\s+', ' ', text)
+                if text:
+                    story.append(Paragraph(text, normal_style))
+                    story.append(Spacer(1, 0.1*inch))
+            elif element_type == 'list':
+                items = args[0]
+                for item in items:
+                    # Use bullet points
+                    story.append(Paragraph(f"• {item}", normal_style))
+                    story.append(Spacer(1, 0.05*inch))
+                story.append(Spacer(1, 0.1*inch))
+        
+        # If no structured content found, fall back to simple text extraction
+        if not story:
+            logger.warning("Could not parse HTML structure, using simple text extraction")
+            # Simple fallback: extract all text
+            class SimpleStripper(HTMLParser):
+                def __init__(self):
+                    super().__init__()
+                    self.text = []
+                
+                def handle_data(self, data):
+                    if data.strip():
+                        self.text.append(data.strip())
+                
+                def get_text(self):
+                    return '\n\n'.join(self.text)
+            
+            stripper = SimpleStripper()
+            stripper.feed(html_content)
+            text_content = stripper.get_text()
+            
+            for para in text_content.split('\n\n'):
+                if para.strip():
+                    story.append(Paragraph(para.strip(), normal_style))
+                    story.append(Spacer(1, 0.15*inch))
+        
+        # Build PDF
+        doc.build(story)
+        pdf_bytes = buffer.getvalue()
+        logger.info(f"Generated PDF using reportlab: {len(pdf_bytes)} bytes")
         return pdf_bytes
-
+        
     except ImportError:
-        logger.warning(
-            "WeasyPrint not available, using HTML fallback (demo mode)")
-        # Fallback: return HTML as bytes (for demo)
+        logger.error("reportlab not installed. Install with: pip install reportlab")
+        logger.warning("Falling back to HTML format")
         return html_content.encode('utf-8')
     except Exception as e:
-        error_msg = str(e)
-        if 'libgobject' in error_msg or 'GTK' in error_msg or 'cairo' in error_msg:
-            logger.warning(
-                "WeasyPrint system libraries not installed. Using HTML fallback (demo mode).")
-            logger.info(
-                "To enable PDF generation on macOS, install: brew install cairo pango gdk-pixbuf libffi")
-            logger.info("Or use demo mode - HTML will be used instead of PDF.")
-        else:
-            logger.warning(
-                f"PDF generation failed: {error_msg[:100]}... Using HTML fallback.")
-        # Fallback: return HTML as bytes (for demo)
+        logger.error(f"PDF generation failed: {e}")
+        logger.warning("Falling back to HTML format")
+        import traceback
+        logger.debug(f"Traceback: {traceback.format_exc()}")
         return html_content.encode('utf-8')
 
 
@@ -361,14 +555,14 @@ def upload_to_ipfs(file_bytes: bytes, filename: str) -> str:
             return _simulated_ipfs_upload(file_bytes, filename)
 
         cid_match = re.search(
-            r"storacha\\.link/ipfs/([a-zA-Z0-9]+)", output)
+            r"storacha\.link/ipfs/([a-zA-Z0-9]+)", output)
         if not cid_match:
             cid_match = re.search(r"(bafy[a-zA-Z0-9]+)", output)
 
         if cid_match:
             cid = cid_match.group(1)
             logger.info(f"Uploaded to Storacha/IPFS: {cid}")
-        return cid
+            return cid
 
         logger.error(
             f"Could not parse CID from Storacha CLI output: {output.strip()[:400]}")
@@ -417,30 +611,58 @@ def submit_to_backend(submission_data: Dict[str, Any]) -> Dict[str, Any]:
     backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
     endpoint = f"{backend_url}/submit-memo"
 
+    logger.info(f"Submitting to backend: {endpoint}")
+    logger.debug(f"Submission data keys: {list(submission_data.keys())}")
+
     try:
         response = requests.post(
             endpoint,
             json=submission_data,
             timeout=30
         )
+        
+        logger.debug(f"Backend response status: {response.status_code}")
+        
+        if not response.ok:
+            error_text = response.text[:500]
+            logger.error(f"Backend returned error {response.status_code}: {error_text}")
+            raise requests.exceptions.HTTPError(f"Backend error {response.status_code}: {error_text}")
+        
         response.raise_for_status()
 
         result = response.json()
-        logger.info(f"Submitted to backend: Proposal ID {result.get('id')}")
+        proposal_id = result.get('id')
+        logger.info(f"✅ Successfully submitted to backend: Proposal ID {proposal_id}")
+        logger.debug(f"Full response: {result}")
+        
+        if not proposal_id or proposal_id == 1:
+            logger.warning(f"⚠️  Received proposal_id={proposal_id}, might be simulated response")
+        
         return result
 
-    except requests.exceptions.ConnectionError:
-        logger.error(f"Could not connect to backend at {backend_url}")
+    except requests.exceptions.ConnectionError as e:
+        logger.error(f"❌ Could not connect to backend at {backend_url}: {e}")
         logger.warning(
-            "Make sure the backend is running: uvicorn app.main:app --reload")
+            "Make sure the backend is running: uvicorn backend.app.main:app --reload")
         # Return simulated response for demo
-        return {
+        simulated = {
             "id": 1,
             "status": "simulated - backend not available",
             **submission_data
         }
+        logger.warning(f"⚠️  Returning simulated response: {simulated}")
+        return simulated
+    except requests.exceptions.Timeout:
+        logger.error(f"❌ Backend request timed out after 30 seconds")
+        return {
+            "id": 1,
+            "status": "failed - timeout",
+            "error": "Backend request timed out"
+        }
     except Exception as e:
-        logger.error(f"Backend submission failed: {e}")
+        logger.error(f"❌ Backend submission failed: {type(e).__name__}: {e}")
+        import traceback
+        logger.debug(f"Traceback: {traceback.format_exc()}")
         return {
             "id": 1,
             "status": "failed",
