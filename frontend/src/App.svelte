@@ -1,13 +1,12 @@
 <script>
   import Dashboard from "./components/Dashboard.svelte";
   import ProposalDetail from "./components/ProposalDetail.svelte";
-  import CreateProposal from "./components/CreateProposal.svelte";
   import QA from "./components/QA.svelte";
   import LandingPage from "./components/LandingPage.svelte";
   import Navbar from "./components/Navbar.svelte";
   import { walletStore } from "./stores/wallet.js";
 
-  let currentView = "landing"; // 'landing', 'dashboard', 'detail', 'create', 'qa'
+  let currentView = "landing"; // 'landing', 'dashboard', 'detail', 'qa'
   let selectedProposalId = null;
 
   function navigateTo(view, proposalId = null) {
@@ -49,10 +48,6 @@
           proposalId={selectedProposalId}
           on:back={() => navigateTo("dashboard")}
         />
-      </div>
-    {:else if currentView === "create"}
-      <div class="container mx-auto px-4 py-8 pt-24">
-        <CreateProposal on:back={() => navigateTo("dashboard")} />
       </div>
     {:else if currentView === "qa"}
       <div class="container mx-auto px-4 py-8 pt-24">

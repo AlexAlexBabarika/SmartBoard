@@ -1,5 +1,5 @@
 <script>
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, onDestroy } from "svelte";
   import { walletStore } from "../stores/wallet.js";
 
   export let currentView;
@@ -11,6 +11,23 @@
   let mobileMenuOpen = false;
   let showAddressPrompt = false;
   let addressInput = "";
+  let addressInputElement;
+
+  // Lock body scroll when modal is open
+  $: if (typeof document !== "undefined") {
+    if (showAddressPrompt) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+  }
+
+  // Cleanup on destroy
+  onDestroy(() => {
+    if (typeof document !== "undefined") {
+      document.body.style.overflow = "";
+    }
+  });
 
   function handleNavigation(view) {
     dispatch("navigate", { view });
@@ -24,6 +41,12 @@
       // Show prompt for wallet address
       showAddressPrompt = true;
       addressInput = "";
+      // Focus the input after the modal is shown
+      setTimeout(() => {
+        if (addressInputElement) {
+          addressInputElement.focus();
+        }
+      }, 100);
     }
   }
 
@@ -49,6 +72,15 @@
     mobileMenuOpen = !mobileMenuOpen;
   }
 </script>
+
+<!-- Escape key handler for modal - must be at top level -->
+<svelte:body
+  on:keydown={(e) => {
+    if (e.key === "Escape" && showAddressPrompt) {
+      handleAddressCancel();
+    }
+  }}
+/>
 
 <!-- Glass Navigation Bar -->
 <nav class="fixed top-0 left-0 right-0 z-50 nav-glass">
@@ -80,13 +112,6 @@
           on:click={() => handleNavigation("dashboard")}
         >
           Dashboard
-        </button>
-        <button
-          class="nav-link"
-          class:active={currentView === "create"}
-          on:click={() => handleNavigation("create")}
-        >
-          Create Proposal
         </button>
         <button
           class="nav-link"
@@ -176,13 +201,6 @@
         </button>
         <button
           class="mobile-nav-link"
-          class:active={currentView === "create"}
-          on:click={() => handleNavigation("create")}
-        >
-          Create Proposal
-        </button>
-        <button
-          class="mobile-nav-link"
           class:active={currentView === "qa"}
           on:click={() => handleNavigation("qa")}
         >
@@ -191,59 +209,59 @@
       </div>
     </div>
   {/if}
+</nav>
 
-  <!-- Address Prompt Modal -->
-  {#if showAddressPrompt}
+<!-- Address Prompt Modal -->
+{#if showAddressPrompt}
+  <div
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-title"
+    on:click|self={handleAddressCancel}
+    tabindex="-1"
+  >
     <div
-      class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-      on:click|self={handleAddressCancel}
-      on:keydown={(e) => e.key === "Escape" && handleAddressCancel()}
-      tabindex="-1"
+      class="bg-pe-panel border border-pe-border rounded-pe-lg p-6 max-w-md w-full shadow-xl animate-slide-up"
+      role="document"
+      on:click|stopPropagation
     >
-      <div
-        class="bg-pe-panel border border-pe-border rounded-pe-lg p-6 max-w-md w-full shadow-xl"
-        role="document"
-        on:click|stopPropagation
-        on:keydown={(e) => e.stopPropagation()}
+      <h3
+        id="modal-title"
+        class="font-display font-semibold text-lg text-pe-text mb-4"
       >
-        <h3
-          id="modal-title"
-          class="font-display font-semibold text-lg text-pe-text mb-4"
+        Enter your NEO wallet address
+      </h3>
+      <input
+        type="text"
+        bind:this={addressInputElement}
+        class="search-input-pe w-full mb-4"
+        placeholder="N..."
+        bind:value={addressInput}
+        on:keydown={(e) => {
+          if (e.key === "Enter") handleAddressSubmit();
+          if (e.key === "Escape") handleAddressCancel();
+        }}
+        autofocus
+      />
+      <div class="flex gap-3 justify-end">
+        <button
+          class="px-4 py-2 rounded-pe text-pe-muted hover:text-pe-text hover:bg-pe-card transition-colors focus-ring"
+          on:click={handleAddressCancel}
         >
-          Enter your NEO wallet address
-        </h3>
-        <input
-          type="text"
-          class="search-input-pe w-full mb-4"
-          placeholder="N..."
-          bind:value={addressInput}
-          on:keydown={(e) => {
-            if (e.key === "Enter") handleAddressSubmit();
-            if (e.key === "Escape") handleAddressCancel();
-          }}
-        />
-        <div class="flex gap-3 justify-end">
-          <button
-            class="px-4 py-2 rounded-pe text-pe-muted hover:text-pe-text hover:bg-pe-card transition-colors"
-            on:click={handleAddressCancel}
-          >
-            Cancel
-          </button>
-          <button
-            class="px-4 py-2 rounded-pe bg-pe-accent text-white hover:bg-pe-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            on:click={handleAddressSubmit}
-            disabled={!addressInput.trim()}
-          >
-            Connect
-          </button>
-        </div>
+          Cancel
+        </button>
+        <button
+          class="px-4 py-2 rounded-pe bg-pe-accent text-white hover:bg-pe-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-ring"
+          on:click={handleAddressSubmit}
+          disabled={!addressInput.trim()}
+        >
+          Connect
+        </button>
       </div>
     </div>
-  {/if}
-</nav>
+  </div>
+{/if}
 
 <style>
   .nav-link {

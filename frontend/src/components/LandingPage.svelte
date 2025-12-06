@@ -122,12 +122,12 @@
               <span class="text-pe-accent font-bold text-lg">1</span>
             </div>
             <h3 class="font-display font-semibold text-xl text-pe-text">
-              Create Proposal
+              AI Discovery
             </h3>
           </div>
           <p class="text-pe-muted text-sm leading-relaxed">
-            Submit investment opportunities with detailed information for
-            community review
+            AI automatically discovers and generates investment proposals with
+            detailed analysis for community review
           </p>
         </div>
 
