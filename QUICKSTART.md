@@ -67,6 +67,16 @@ OPENAI_API_KEY=sk-your-actual-key
 DEMO_MODE=false
 ```
 
+### Enable Real-Time Vote Simulation
+
+Watch proposals accrue one vote every ~2 seconds (demo/testing):
+```bash
+SIMULATED_VOTING_ENABLED=true
+SIMULATED_VOTING_INTERVAL_SECONDS=2.0
+SIMULATED_VOTING_MAX_VOTES_PER_PROPOSAL=200
+SIMULATED_VOTING_YES_PROBABILITY=0.65
+```
+
 ### Add Real IPFS Storage
 
 Storacha uses a CLI (no API tokens). Install and log in:

@@ -27,7 +27,7 @@ else:
     logger = logging.getLogger(__name__)
     logger.debug("Loaded .env from current directory")
 
-from .db import get_db, init_db
+from .db import get_db, init_db, SessionLocal
 from .models import Proposal as DBProposal, Vote as DBVote
 from .neo_client import NeoClient
 from .startup_discovery import (
@@ -50,6 +50,7 @@ from .manifest_manager import (
 )
 from .utils import clean_cid  # new helper for consistent CID comparison
 from .research_pipeline_adapter import run_research_pipeline
+from .vote_service import process_vote
 
 # Configure logging (if not already configured)
 if not logging.getLogger().handlers:
@@ -72,6 +73,12 @@ storacha_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="storac
 STORACHA_SYNC_ON_FETCH = os.getenv("STORACHA_SYNC_ON_FETCH", "true").lower() == "true"
 STORACHA_SYNC_ON_FETCH_TIMEOUT = float(os.getenv("STORACHA_SYNC_ON_FETCH_TIMEOUT", "3.0"))
 
+# Simulated voting configuration
+SIMULATED_VOTING_ENABLED = os.getenv("SIMULATED_VOTING_ENABLED", "false").lower() == "true"
+SIMULATED_VOTING_INTERVAL_SECONDS = float(os.getenv("SIMULATED_VOTING_INTERVAL_SECONDS", "2.0"))
+SIMULATED_VOTING_MAX_VOTES_PER_PROPOSAL = int(os.getenv("SIMULATED_VOTING_MAX_VOTES_PER_PROPOSAL", "200"))
+SIMULATED_VOTING_YES_PROBABILITY = float(os.getenv("SIMULATED_VOTING_YES_PROBABILITY", "0.65"))
+
 # CORS middleware for frontend
 app.add_middleware(
     CORSMiddleware,
@@ -83,6 +90,7 @@ app.add_middleware(
 
 # Initialize NEO client (lazy initialization to avoid blocking startup)
 neo_client = None
+simulated_voting_agent = None
 
 def get_neo_client():
     """Get or initialize NEO client (lazy initialization)."""
@@ -157,6 +165,29 @@ async def startup_event():
         logger.info("Automatic Storacha sync is disabled")
         logger.info(f"To enable, set STORACHA_AUTO_SYNC=true in .env file")
 
+    # Start simulated voting agent (demo/automation)
+    if SIMULATED_VOTING_ENABLED:
+        try:
+            from .vote_simulation_agent import SimulatedVotingAgent
+            global simulated_voting_agent
+            simulated_voting_agent = SimulatedVotingAgent(
+                interval_seconds=SIMULATED_VOTING_INTERVAL_SECONDS,
+                max_votes_per_proposal=SIMULATED_VOTING_MAX_VOTES_PER_PROPOSAL,
+                yes_probability=SIMULATED_VOTING_YES_PROBABILITY,
+                db_factory=SessionLocal
+            )
+            simulated_voting_agent.start()
+            logger.info(
+                "Simulated voting agent started",
+                extra={
+                    "interval_seconds": SIMULATED_VOTING_INTERVAL_SECONDS,
+                    "max_votes_per_proposal": SIMULATED_VOTING_MAX_VOTES_PER_PROPOSAL,
+                    "yes_probability": SIMULATED_VOTING_YES_PROBABILITY
+                }
+            )
+        except Exception as exc:
+            logger.error(f"Failed to start simulated voting agent: {exc}")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -164,6 +195,8 @@ async def shutdown_event():
     logger.info("Shutting down thread pool executors...")
     executor.shutdown(wait=True)
     storacha_executor.shutdown(wait=True)
+    if simulated_voting_agent:
+        simulated_voting_agent.stop()
     logger.info("Shutdown complete")
 
 
@@ -633,39 +666,15 @@ async def vote(request: VoteRequest, db: Session = Depends(get_db)):
             status_code=400, detail="Voter has already voted on this proposal")
 
     try:
-        # Submit vote to blockchain
-        tx_result = get_neo_client().vote(
-            proposal_id=proposal.on_chain_id or request.proposal_id,
-            voter=request.voter_address,
-            choice=request.vote
-        )
-
-        # Record vote in database
-        db_vote = DBVote(
-            proposal_id=request.proposal_id,
+        return process_vote(
+            db=db,
+            proposal=proposal,
             voter_address=request.voter_address,
-            vote=request.vote,
-            tx_hash=tx_result.get("tx_hash")
+            vote_value=request.vote
         )
-        db.add(db_vote)
-
-        # Update vote tally
-        if request.vote == 1:
-            proposal.yes_votes += 1
-        else:
-            proposal.no_votes += 1
-
-        db.commit()
-
-        logger.info(f"Vote recorded: TX={tx_result.get('tx_hash')}")
-
-        return {
-            "success": True,
-            "tx_hash": tx_result.get("tx_hash"),
-            "yes_votes": proposal.yes_votes,
-            "no_votes": proposal.no_votes
-        }
-
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         logger.error(f"Error processing vote: {str(e)}")
@@ -702,44 +711,51 @@ async def vote_nested(proposal_id: int, request: VoteRequestNoId, db: Session = 
             status_code=400, detail="Voter has already voted on this proposal")
 
     try:
-        # Submit vote to blockchain
-        tx_result = get_neo_client().vote(
-            proposal_id=proposal.on_chain_id or proposal_id,
-            voter=request.voter_address,
-            choice=request.vote
-        )
-
-        # Record vote in database
-        db_vote = DBVote(
-            proposal_id=proposal_id,
+        return process_vote(
+            db=db,
+            proposal=proposal,
             voter_address=request.voter_address,
-            vote=request.vote,
-            tx_hash=tx_result.get("tx_hash")
+            vote_value=request.vote
         )
-        db.add(db_vote)
-
-        # Update vote tally
-        if request.vote == 1:
-            proposal.yes_votes += 1
-        else:
-            proposal.no_votes += 1
-
-        db.commit()
-
-        logger.info(f"Vote recorded: TX={tx_result.get('tx_hash')}")
-
-        return {
-            "success": True,
-            "tx_hash": tx_result.get("tx_hash"),
-            "yes_votes": proposal.yes_votes,
-            "no_votes": proposal.no_votes
-        }
-
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         logger.error(f"Error processing vote: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Failed to process vote: {str(e)}")
+
+
+@app.get("/proposals/{proposal_id}/has-voted/{voter_address}")
+async def has_voted(proposal_id: int, voter_address: str, db: Session = Depends(get_db)):
+    """
+    Check on-chain whether a voter has already cast a vote for a proposal.
+
+    Uses the smart contract has_voted method to avoid duplicate voting UI.
+    """
+    proposal = db.query(DBProposal).filter(DBProposal.id == proposal_id).first()
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+
+    try:
+        result = get_neo_client().has_voted(
+            proposal.on_chain_id or proposal_id,
+            voter_address
+        )
+        return {
+            "proposal_id": proposal_id,
+            "voter_address": voter_address,
+            "has_voted": bool(result)
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Error checking on-chain vote status: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to check on-chain vote status"
+        )
 
 
 @app.post("/finalize")

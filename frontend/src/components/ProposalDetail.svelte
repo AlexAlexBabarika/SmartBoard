@@ -13,6 +13,9 @@
   let voting = false;
   let finalizing = false;
   let pdfLoading = true;
+  let hasVoted = false;
+  let checkingVoteStatus = false;
+  let lastVoteCheckKey = null;
 
   $: wallet = $walletStore;
 
@@ -33,6 +36,41 @@
     } finally {
       loading = false;
     }
+
+    await refreshVoteStatus(true);
+  }
+
+  async function refreshVoteStatus(force = false) {
+    if (!wallet.connected || !proposal) {
+      hasVoted = false;
+      lastVoteCheckKey = null;
+      return;
+    }
+
+    const checkKey = `${proposal.id}-${wallet.address}`;
+    if (!force && checkKey === lastVoteCheckKey) {
+      return;
+    }
+
+    checkingVoteStatus = true;
+    try {
+      const result = await proposalAPI.hasVoted(proposal.id, wallet.address);
+      hasVoted = !!result?.has_voted;
+    } catch (e) {
+      console.error("Error checking vote status:", e);
+      // Fail open to allow user to attempt vote; backend will enforce again
+      hasVoted = false;
+    } finally {
+      lastVoteCheckKey = checkKey;
+      checkingVoteStatus = false;
+    }
+  }
+
+  $: if (wallet.connected && proposal) {
+    refreshVoteStatus();
+  } else if (!wallet.connected) {
+    hasVoted = false;
+    lastVoteCheckKey = null;
   }
 
   async function handleVote(vote) {
@@ -49,6 +87,7 @@
       voting = true;
       await proposalAPI.vote(proposalId, wallet.address, vote);
       await loadProposal();
+      hasVoted = true;
       alert("Vote submitted successfully!");
     } catch (e) {
       alert("Failed to submit vote: " + e.message);
@@ -308,41 +347,53 @@
           </div>
         {/if}
 
-        <div class="flex gap-4 mt-6">
-          <button
-            class="flex-1 py-4 rounded-pe-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2
-              bg-pe-accent/20 text-pe-accent border border-pe-accent/30 hover:bg-pe-accent hover:text-white
-              disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={!wallet.connected || voting}
-            on:click={() => handleVote(1)}
-          >
-            {#if voting}
-              <div class="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin"></div>
-            {:else}
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            {/if}
-            Vote YES
-          </button>
+        {#if hasVoted}
+          <div class="flex items-start gap-3 p-4 mt-4 rounded-pe-lg bg-green-500/10 border border-green-500/20">
+            <svg class="w-6 h-6 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            <div>
+              <p class="text-green-300 font-semibold">Vote recorded on-chain</p>
+              <p class="text-pe-muted text-sm">You have already voted for this proposal.</p>
+            </div>
+          </div>
+        {:else}
+          <div class="flex gap-4 mt-6">
+            <button
+              class="flex-1 py-4 rounded-pe-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2
+                bg-pe-accent/20 text-pe-accent border border-pe-accent/30 hover:bg-pe-accent hover:text-white
+                disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!wallet.connected || voting || checkingVoteStatus}
+              on:click={() => handleVote(1)}
+            >
+              {#if voting}
+                <div class="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin"></div>
+              {:else}
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              {/if}
+              Vote YES
+            </button>
 
-          <button
-            class="flex-1 py-4 rounded-pe-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2
-              bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white
-              disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={!wallet.connected || voting}
-            on:click={() => handleVote(0)}
-          >
-            {#if voting}
-              <div class="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin"></div>
-            {:else}
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            {/if}
-            Vote NO
-          </button>
-        </div>
+            <button
+              class="flex-1 py-4 rounded-pe-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2
+                bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white
+                disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!wallet.connected || voting || checkingVoteStatus}
+              on:click={() => handleVote(0)}
+            >
+              {#if voting}
+                <div class="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin"></div>
+              {:else}
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              {/if}
+              Vote NO
+            </button>
+          </div>
+        {/if}
 
         <div class="relative flex items-center py-6">
           <div class="flex-grow border-t border-pe-border"></div>
