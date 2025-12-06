@@ -3,10 +3,11 @@
   import ProposalDetail from "./components/ProposalDetail.svelte";
   import CreateProposal from "./components/CreateProposal.svelte";
   import QA from "./components/QA.svelte";
+  import LandingPage from "./components/LandingPage.svelte";
   import Navbar from "./components/Navbar.svelte";
   import { walletStore } from "./stores/wallet.js";
 
-  let currentView = "dashboard"; // 'dashboard', 'detail', 'create', 'qa'
+  let currentView = "landing"; // 'landing', 'dashboard', 'detail', 'create', 'qa'
   let selectedProposalId = null;
 
   function navigateTo(view, proposalId = null) {
@@ -28,15 +29,19 @@
 </script>
 
 <div class="min-h-screen bg-pe-bg">
-  <Navbar
-    {currentView}
-    on:navigate={(e) => navigateTo(e.detail.view)}
-    on:connectWallet={connectWallet}
-    on:disconnectWallet={disconnectWallet}
-  />
+  {#if currentView !== "landing"}
+    <Navbar
+      {currentView}
+      on:navigate={(e) => navigateTo(e.detail.view)}
+      on:connectWallet={connectWallet}
+      on:disconnectWallet={disconnectWallet}
+    />
+  {/if}
 
   <main>
-    {#if currentView === "dashboard"}
+    {#if currentView === "landing"}
+      <LandingPage on:navigate={(e) => navigateTo(e.detail.view)} />
+    {:else if currentView === "dashboard"}
       <Dashboard on:selectProposal={(e) => navigateTo("detail", e.detail.id)} />
     {:else if currentView === "detail"}
       <div class="container mx-auto px-4 py-8 pt-24">

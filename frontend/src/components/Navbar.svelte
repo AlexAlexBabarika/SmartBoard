@@ -57,9 +57,9 @@
       <!-- Logo (Left) -->
       <div class="flex-shrink-0">
         <button
-          on:click={() => handleNavigation("dashboard")}
+          on:click={() => handleNavigation("landing")}
           class="flex items-center gap-2 focus-ring rounded-pe"
-          aria-label="Go to dashboard"
+          aria-label="Go to landing page"
         >
           <!-- Plant/Leaf Icon in Accent Green -->
           <svg
