@@ -127,7 +127,7 @@ def main():
     # Check optional Python packages
     print("\nOptional Python packages:")
     optional_packages = {
-        'reportlab': 'PDF generation',
+        'weasyprint': 'PDF generation',
         'neo': 'NEO blockchain (neo-mamba)',
         'boa3': 'Smart contract compilation (neo3-boa)'
     }

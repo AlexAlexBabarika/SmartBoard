@@ -23,8 +23,6 @@
     try {
       loading = true;
       error = null;
-      // Reset gateway when loading new proposal
-      currentGateway = 'dweb';
       proposal = await proposalAPI.getProposal(proposalId);
     } catch (e) {
       error = "Failed to load proposal details.";
@@ -81,105 +79,8 @@
     }
   }
 
-  let currentGateway = 'dweb'; // Use dweb.link for viewing PDFs
-
-  function getIpfsUrl(cid, gateway = null) {
-    // Support multiple IPFS gateway options for reliability
-    // If CID is already a full URL, return it as-is
-    if (cid.startsWith('http://') || cid.startsWith('https://')) {
-      return cid;
-    }
-    // Remove any path/gateway prefix if present
-    const cleanCid = cid.replace(/^https?:\/\/[^/]+\/ipfs\//, '').replace(/^ipfs:\/\//, '');
-    
-    // Use different gateways - ordered by reliability
-    const gateways = {
-      'ipfs': `https://ipfs.io/ipfs/${cleanCid}`,           // Most reliable public gateway
-      'dweb': `https://dweb.link/ipfs/${cleanCid}`,        // Protocol Labs gateway
-      'cloudflare': `https://cloudflare-ipfs.com/ipfs/${cleanCid}`,  // Cloudflare (sometimes has issues)
-      'gateway': `https://gateway.pinata.cloud/ipfs/${cleanCid}`,   // Pinata gateway
-      'storacha': `https://storacha.link/ipfs/${cleanCid}` // Original gateway
-    };
-    
-    const gatewayName = gateway || currentGateway;
-    return gateways[gatewayName] || gateways['ipfs'];
-  }
-  
-  async function handleDownload(cid) {
-    // Try multiple gateways if one fails - ordered by reliability
-    const gateways = ['ipfs', 'dweb', 'gateway', 'cloudflare', 'storacha'];
-    
-    for (const gateway of gateways) {
-      try {
-        const url = getIpfsUrl(cid, gateway);
-        console.log(`Attempting download from ${gateway} gateway: ${url}`);
-        
-        // For downloads, we need to fetch as blob
-        // If CORS is an issue, fall back to direct link
-        // Create timeout abort controller for older browsers
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          mode: 'cors',
-          cache: 'default',
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const blob = await response.blob();
-        
-        // Check if we got an error page instead of PDF
-        if (blob.size < 100) {
-          throw new Error('Response too small, might be an error page');
-        }
-        
-        // Verify it's a PDF
-        if (blob.type && !blob.type.includes('pdf') && !blob.type.includes('octet-stream')) {
-          console.warn(`Unexpected content type: ${blob.type}`);
-        }
-        
-        const blobUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = `proposal-${proposalId || 'memo'}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(blobUrl);
-        
-        console.log(`Successfully downloaded from ${gateway} gateway`);
-        return; // Success, exit function
-      } catch (error) {
-        console.warn(`Download failed from ${gateway} gateway:`, error);
-        // Continue to next gateway
-        if (error.name === 'AbortError') {
-          console.warn(`Download timeout from ${gateway} gateway`);
-        }
-        continue;
-      }
-    }
-    
-    // If all gateways failed, offer direct link as fallback
-    const fallbackUrl = getIpfsUrl(cid, 'ipfs');
-    const userConfirmed = confirm(
-      `Direct download failed from all gateways.\n\n` +
-      `This might be due to:\n` +
-      `- CORS restrictions\n` +
-      `- The file not being available yet\n` +
-      `- Network connectivity issues\n\n` +
-      `Click OK to open the PDF in a new tab where you can download it manually.`
-    );
-    
-    if (userConfirmed) {
-      window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
-    }
+  function getIpfsUrl(cid) {
+    return `https://storacha.link/ipfs/${cid}`;
   }
 
   function goBack() {
@@ -305,9 +206,32 @@
           </p>
 
           <div class="flex gap-2">
-            <button
-              type="button"
-              on:click={() => handleDownload(proposal.ipfs_cid)}
+            <a
+              href={getIpfsUrl(proposal.ipfs_cid)}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn btn-primary btn-sm"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+              View on IPFS
+            </a>
+
+            <a
+              href={getIpfsUrl(proposal.ipfs_cid)}
+              download
               class="btn btn-secondary btn-sm"
             >
               <svg
@@ -325,7 +249,7 @@
                 />
               </svg>
               Download PDF
-            </button>
+            </a>
           </div>
         </div>
 
@@ -362,11 +286,11 @@
 
         <!-- PDF Preview iframe -->
         <div
-          class="mt-4 border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50 relative"
+          class="mt-4 border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center"
           style="height: 600px;"
         >
           <iframe
-            src={getIpfsUrl(proposal.ipfs_cid, currentGateway)}
+            src={getIpfsUrl(proposal.ipfs_cid)}
             title="Investment Memo PDF"
             class="w-full h-full"
             frameborder="0"

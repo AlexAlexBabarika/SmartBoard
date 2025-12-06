@@ -30,47 +30,42 @@ if env_path.exists():
 else:
     load_dotenv()  # Fallback to current directory
 
-# Configure logging to stderr so stdout is clean for JSON output
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    stream=sys.stderr  # Log to stderr, keep stdout clean for JSON
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
 
-def process_startup_data(startup_data: dict, submit_callback=None) -> dict:
+def process_startup_data(startup_data: dict) -> dict:
     """
     Process startup data and generate investment memo.
-
+    
     Args:
         startup_data: Dict containing startup information
-        submit_callback: Optional callback function for direct database submission.
-                        If provided, bypasses HTTP and calls this function directly.
-                        Should accept: title, summary, cid, confidence, metadata
-
+        
     Returns:
         Dict with generated memo, CID, and metadata
     """
     logger.info(f"Processing startup: {startup_data.get('name', 'Unknown')}")
-
+    
     # Step 1: Generate deal memo using LLM
     logger.info("Generating deal memo with LLM...")
     memo_content = generate_deal_memo(startup_data)
-
+    
     # Step 2: Render HTML from template
     logger.info("Rendering HTML memo...")
     html_content = render_memo_html(memo_content, startup_data)
-
+    
     # Step 3: Convert HTML to PDF
     logger.info("Converting to PDF...")
     pdf_bytes = html_to_pdf(html_content)
-
+    
     # Step 4: Upload to IPFS
     logger.info("Uploading to IPFS...")
-    ipfs_cid = upload_to_ipfs(
-        pdf_bytes, f"{startup_data.get('name', 'memo')}.pdf")
-
+    ipfs_cid = upload_to_ipfs(pdf_bytes, f"{startup_data.get('name', 'memo')}.pdf")
+    
     # Step 5: Prepare submission data
     submission = {
         "title": f"Investment Memo: {startup_data.get('name')}",
@@ -90,35 +85,15 @@ def process_startup_data(startup_data: dict, submit_callback=None) -> dict:
             }
         }
     }
-
+    
     # Step 6: Submit to backend
     logger.info("Submitting to DAO backend...")
-
-    # Use direct callback if provided (for direct call mode), otherwise use HTTP
-    if submit_callback:
-        logger.info("Using direct database submission (bypassing HTTP)...")
-        try:
-            response = submit_callback(
-                title=submission["title"],
-                summary=submission["summary"],
-                cid=submission["cid"],
-                confidence=submission["confidence"],
-                metadata=submission["metadata"]
-            )
-            logger.info(
-                f"✅ Direct submission successful! Proposal ID: {response.get('id')}")
-        except Exception as e:
-            logger.error(f"❌ Direct submission failed: {e}")
-            logger.warning("Falling back to HTTP submission...")
-            response = submit_to_backend(submission)
-    else:
-        response = submit_to_backend(submission)
-
-    logger.info(
-        f"✅ Memo submitted successfully! Proposal ID: {response.get('id')}")
+    response = submit_to_backend(submission)
+    
+    logger.info(f"✅ Memo submitted successfully! Proposal ID: {response.get('id')}")
     logger.info(f"   IPFS CID: {ipfs_cid}")
     logger.info(f"   View at: https://storacha.link/ipfs/{ipfs_cid}")
-
+    
     return {
         "proposal_id": response.get("id"),
         "ipfs_cid": ipfs_cid,
@@ -130,17 +105,15 @@ def process_startup_data(startup_data: dict, submit_callback=None) -> dict:
 def demo_mode():
     """Run agent in demo mode with sample data."""
     logger.info("Running in DEMO mode with sample startup data")
-
+    
     sample_startup = {
         "name": "NexGenAI",
         "sector": "Artificial Intelligence",
         "stage": "Series A",
         "description": "NexGenAI is building next-generation AI models for enterprise automation. The company has developed proprietary algorithms that reduce training time by 70% while maintaining accuracy.",
         "team": [
-            {"name": "Jane Doe", "role": "CEO",
-                "background": "Ex-Google AI Research"},
-            {"name": "John Smith", "role": "CTO",
-                "background": "PhD MIT, former OpenAI"}
+            {"name": "Jane Doe", "role": "CEO", "background": "Ex-Google AI Research"},
+            {"name": "John Smith", "role": "CTO", "background": "PhD MIT, former OpenAI"}
         ],
         "metrics": {
             "mrr": 50000,
@@ -158,14 +131,14 @@ def demo_mode():
             "competition": "Competing with UiPath, Automation Anywhere, but differentiated by AI-first approach"
         }
     }
-
+    
     result = process_startup_data(sample_startup)
-
+    
     # Save result to file
     output_file = Path("demo_output.json")
     with open(output_file, "w") as f:
         json.dump(result, f, indent=2)
-
+    
     logger.info(f"Demo results saved to {output_file}")
     return result
 
@@ -192,59 +165,46 @@ def main():
         type=str,
         help="Path to save output JSON"
     )
-
+    
     args = parser.parse_args()
-
+    
     # Check for required environment variables
     required_vars = ["OPENAI_API_KEY"]
     demo_mode_enabled = os.getenv("DEMO_MODE", "true").lower() == "true"
-
+    
     missing_vars = [var for var in required_vars if not os.getenv(var)]
     if missing_vars and not args.demo:
-        logger.warning(
-            f"Missing environment variables: {', '.join(missing_vars)}")
-        logger.warning(
-            "Running with simulated operations. Set DEMO_MODE=false for real operations.")
+        logger.warning(f"Missing environment variables: {', '.join(missing_vars)}")
+        logger.warning("Running with simulated operations. Set DEMO_MODE=false for real operations.")
 
     if not demo_mode_enabled and not shutil.which(os.getenv("STORACHA_CLI", "storacha")):
-        logger.warning(
-            "Storacha CLI not found. Install @storacha/cli to enable real uploads.")
-
+        logger.warning("Storacha CLI not found. Install @storacha/cli to enable real uploads.")
+    
     try:
         if args.demo or (not args.input):
             # Run demo mode
             result = demo_mode()
-            # Print result as JSON to stdout for subprocess communication
-            # Flush stderr first to ensure logs are written, then print clean JSON to stdout
-            sys.stderr.flush()
-            print(json.dumps(result, indent=2), flush=True)
         else:
             # Load startup data from file
             input_path = Path(args.input)
             if not input_path.exists():
                 logger.error(f"Input file not found: {args.input}")
                 sys.exit(1)
-
+            
             with open(input_path, "r") as f:
                 startup_data = json.load(f)
-
+            
             result = process_startup_data(startup_data)
-
+            
             # Save output if specified
             if args.output:
                 with open(args.output, "w") as f:
                     json.dump(result, f, indent=2)
                 logger.info(f"Results saved to {args.output}")
-
-            # IMPORTANT: Print result as JSON to stdout for subprocess communication
-            # This allows the backend to parse the output when running as subprocess
-            # Flush stderr first to ensure logs are written, then print clean JSON to stdout
-            sys.stderr.flush()
-            print(json.dumps(result, indent=2), flush=True)
-
+        
         logger.info("Agent execution completed successfully!")
         return 0
-
+        
     except Exception as e:
         logger.error(f"Agent execution failed: {str(e)}", exc_info=True)
         return 1
@@ -252,3 +212,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+

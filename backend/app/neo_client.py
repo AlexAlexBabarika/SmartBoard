@@ -29,13 +29,11 @@ class NeoClient:
         # Determine if we can make real blockchain calls
         self.is_simulated = DEMO_MODE or not all([self.rpc_url, self.private_key, self.contract_hash])
         
-        # Always initialize simulation state (needed for fallback even when not in demo mode)
-        self.simulated_proposals = {}
-        self.simulated_votes = {}
-        self.next_proposal_id = 1
-        
         if self.is_simulated:
             logger.warning("NEO client running in SIMULATION mode - no real blockchain transactions")
+            self.simulated_proposals = {}
+            self.simulated_votes = {}
+            self.next_proposal_id = 1
         else:
             logger.info(f"NEO client initialized with RPC: {self.rpc_url}")
             # In a real implementation, initialize neo-mamba client here
