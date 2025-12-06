@@ -166,6 +166,12 @@ class VoteRequest(BaseModel):
     vote: int  # 1 for yes, 0 for no
 
 
+class VoteRequestNoId(BaseModel):
+    """Vote request without proposal_id (extracted from URL path)"""
+    voter_address: str
+    vote: int  # 1 for yes, 0 for no
+
+
 class FinalizeRequest(BaseModel):
     proposal_id: int
 
@@ -520,6 +526,75 @@ async def vote(request: VoteRequest, db: Session = Depends(get_db)):
             status_code=500, detail=f"Failed to process vote: {str(e)}")
 
 
+@app.post("/proposals/{proposal_id}/vote")
+async def vote_nested(proposal_id: int, request: VoteRequestNoId, db: Session = Depends(get_db)):
+    """
+    Submit a vote on a proposal (nested route).
+    Records vote on-chain and updates local tally.
+    """
+    logger.info(
+        f"Processing vote: proposal={proposal_id}, voter={request.voter_address}, vote={request.vote}")
+
+    # Validate proposal exists
+    proposal = db.query(DBProposal).filter(
+        DBProposal.id == proposal_id).first()
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+
+    if proposal.status != "active":
+        raise HTTPException(status_code=400, detail="Proposal is not active")
+
+    # Check if voter already voted
+    existing_vote = db.query(DBVote).filter(
+        DBVote.proposal_id == proposal_id,
+        DBVote.voter_address == request.voter_address
+    ).first()
+
+    if existing_vote:
+        raise HTTPException(
+            status_code=400, detail="Voter has already voted on this proposal")
+
+    try:
+        # Submit vote to blockchain
+        tx_result = get_neo_client().vote(
+            proposal_id=proposal.on_chain_id or proposal_id,
+            voter=request.voter_address,
+            choice=request.vote
+        )
+
+        # Record vote in database
+        db_vote = DBVote(
+            proposal_id=proposal_id,
+            voter_address=request.voter_address,
+            vote=request.vote,
+            tx_hash=tx_result.get("tx_hash")
+        )
+        db.add(db_vote)
+
+        # Update vote tally
+        if request.vote == 1:
+            proposal.yes_votes += 1
+        else:
+            proposal.no_votes += 1
+
+        db.commit()
+
+        logger.info(f"Vote recorded: TX={tx_result.get('tx_hash')}")
+
+        return {
+            "success": True,
+            "tx_hash": tx_result.get("tx_hash"),
+            "yes_votes": proposal.yes_votes,
+            "no_votes": proposal.no_votes
+        }
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error processing vote: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to process vote: {str(e)}")
+
+
 @app.post("/finalize")
 async def finalize(request: FinalizeRequest, db: Session = Depends(get_db)):
     """
@@ -551,6 +626,54 @@ async def finalize(request: FinalizeRequest, db: Session = Depends(get_db)):
 
         logger.info(
             f"Proposal finalized: ID={request.proposal_id}, status={proposal.status}")
+
+        return {
+            "success": True,
+            "proposal_id": proposal.id,
+            "status": proposal.status,
+            "tx_hash": tx_result.get("tx_hash"),
+            "yes_votes": proposal.yes_votes,
+            "no_votes": proposal.no_votes
+        }
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error finalizing proposal: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to finalize proposal: {str(e)}")
+
+
+@app.post("/proposals/{proposal_id}/finalize")
+async def finalize_nested(proposal_id: int, db: Session = Depends(get_db)):
+    """
+    Finalize a proposal (close voting and determine outcome) - nested route.
+    """
+    logger.info(f"Finalizing proposal: {proposal_id}")
+
+    proposal = db.query(DBProposal).filter(
+        DBProposal.id == proposal_id).first()
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+
+    if proposal.status != "active":
+        raise HTTPException(status_code=400, detail="Proposal is not active")
+
+    try:
+        # Finalize on blockchain
+        tx_result = get_neo_client().finalize_proposal(
+            proposal_id=proposal.on_chain_id or proposal_id
+        )
+
+        # Determine outcome
+        if proposal.yes_votes > proposal.no_votes:
+            proposal.status = "approved"
+        else:
+            proposal.status = "rejected"
+
+        db.commit()
+
+        logger.info(
+            f"Proposal finalized: ID={proposal_id}, status={proposal.status}")
 
         return {
             "success": True,
