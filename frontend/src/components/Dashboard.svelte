@@ -147,6 +147,17 @@
     return `https://images.unsplash.com/photo-${imageSeeds[seedIndex]}?w=400&h=400&fit=crop`;
   }
 
+  function getStatusBadgeClasses(status) {
+    switch ((status || "active").toLowerCase()) {
+      case "approved":
+        return "bg-pe-accent/15 text-pe-accent border-pe-accent/30";
+      case "rejected":
+        return "bg-red-500/15 text-red-400 border-red-500/30";
+      default:
+        return "bg-blue-500/15 text-blue-400 border-blue-500/30";
+    }
+  }
+
   // Calculate category counts dynamically from proposals
   $: categoryCounts = (() => {
     const counts = {
@@ -746,6 +757,11 @@
                         {product.subtitle}
                       </p>
                     </div>
+                    <span
+                      class={"px-3 py-1 rounded-pe border text-xs font-semibold uppercase tracking-wide " + getStatusBadgeClasses(product.status)}
+                    >
+                      {product.status}
+                    </span>
                   </div>
 
                   <!-- Confidence Score (for proposals) -->

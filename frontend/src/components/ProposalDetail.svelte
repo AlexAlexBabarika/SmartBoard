@@ -12,6 +12,7 @@
   let error = null;
   let voting = false;
   let finalizing = false;
+  let finalizeResult = null; // { status: 'approved' | 'rejected' }
   let pdfLoading = true;
   let hasVoted = false;
   let checkingVoteStatus = false;
@@ -104,9 +105,12 @@
 
     try {
       finalizing = true;
-      await proposalAPI.finalize(proposalId);
+      const result = await proposalAPI.finalize(proposalId);
       await loadProposal();
-      alert("Proposal finalized successfully!");
+      const status = result?.status || proposal?.status;
+      finalizeResult = {
+        status,
+      };
     } catch (e) {
       alert("Failed to finalize proposal: " + e.message);
       console.error("Error finalizing:", e);
@@ -435,3 +439,34 @@
     font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   }
 </style>
+
+{#if finalizeResult}
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+    <div class="w-full max-w-md rounded-pe-lg bg-pe-panel border border-pe-border shadow-2xl p-6 text-center space-y-4">
+      {#if finalizeResult.status === 'approved'}
+        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/15 border border-green-500/40 text-green-400">
+          <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h3 class="text-2xl font-display font-semibold text-pe-text">Proposal Approved</h3>
+        <p class="text-pe-muted">Placeholder text describing next steps after approval.</p>
+      {:else}
+        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/15 border border-red-500/40 text-red-400">
+          <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </div>
+        <h3 class="text-2xl font-display font-semibold text-pe-text">Proposal Rejected</h3>
+        <p class="text-pe-muted">Placeholder text describing what to do if the proposal is rejected.</p>
+      {/if}
+
+      <button
+        class="mt-2 w-full py-3 rounded-pe-lg font-semibold transition-all duration-200 bg-pe-accent/20 text-pe-accent border border-pe-accent/30 hover:bg-pe-accent hover:text-white"
+        on:click={() => finalizeResult = null}
+      >
+        Close
+      </button>
+    </div>
+  </div>
+{/if}
