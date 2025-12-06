@@ -163,16 +163,19 @@ def test_get_proposal_not_found():
     assert response.status_code == 404
 
 
+@patch("backend.app.vote_service._get_neo_client")
 @patch("backend.app.main.get_neo_client")
-def test_vote_on_proposal(mock_get_neo_client):
+def test_vote_on_proposal(mock_get_neo_client, mock_get_neo_client_vote_service):
     """Test voting on a proposal."""
     mock_client = MagicMock()
     mock_client.create_proposal.return_value = {
         "tx_hash": "0xabcd1234",
         "proposal_id": 1
     }
+    mock_client.has_voted.return_value = False
     mock_client.vote.return_value = {"tx_hash": "0xvote5678"}
     mock_get_neo_client.return_value = mock_client
+    mock_get_neo_client_vote_service.return_value = mock_client
 
     # Create a proposal
     memo_data = {
@@ -200,19 +203,27 @@ def test_vote_on_proposal(mock_get_neo_client):
     assert data["no_votes"] == 0
 
     # Verify vote was called
-    mock_client.vote.assert_called_once()
+    mock_client.has_voted.assert_called_once_with(1, "NTestAddress123")
+    mock_client.vote.assert_called_once_with(
+        proposal_id=1,
+        voter="NTestAddress123",
+        choice=1
+    )
 
 
+@patch("backend.app.vote_service._get_neo_client")
 @patch("backend.app.main.get_neo_client")
-def test_vote_duplicate_voter(mock_get_neo_client):
+def test_vote_duplicate_voter(mock_get_neo_client, mock_get_neo_client_vote_service):
     """Test that duplicate votes from same voter are rejected."""
     mock_client = MagicMock()
     mock_client.create_proposal.return_value = {
         "tx_hash": "0xabcd1234",
         "proposal_id": 1
     }
+    mock_client.has_voted.return_value = False
     mock_client.vote.return_value = {"tx_hash": "0x123"}
     mock_get_neo_client.return_value = mock_client
+    mock_get_neo_client_vote_service.return_value = mock_client
 
     # Create proposal
     memo_data = {
@@ -237,6 +248,82 @@ def test_vote_duplicate_voter(mock_get_neo_client):
     # Duplicate vote
     response2 = client.post("/vote", json=vote_data)
     assert response2.status_code == 400
+
+    # Vote should only have been attempted once (second call blocked before process_vote)
+    mock_client.has_voted.assert_called_once_with(1, "NVoter123")
+    mock_client.vote.assert_called_once_with(
+        proposal_id=1,
+        voter="NVoter123",
+        choice=1
+    )
+
+
+@patch("backend.app.vote_service._get_neo_client")
+@patch("backend.app.main.get_neo_client")
+def test_vote_rejected_when_onchain_already_voted(mock_get_neo_client, mock_get_neo_client_vote_service):
+    """Ensure on-chain duplicate detection blocks voting when DB is stale."""
+    mock_client = MagicMock()
+    mock_client.create_proposal.return_value = {
+        "tx_hash": "0xabcd1234",
+        "proposal_id": 1
+    }
+    # Blockchain already has a vote recorded
+    mock_client.has_voted.return_value = True
+    mock_client.vote.return_value = {"tx_hash": "0xnever"}
+    mock_get_neo_client.return_value = mock_client
+    mock_get_neo_client_vote_service.return_value = mock_client
+
+    memo_data = {
+        "title": "Onchain Duplicate",
+        "summary": "Test on-chain guard",
+        "cid": "QmOnChain",
+        "confidence": 70,
+        "metadata": {}
+    }
+    create_response = client.post("/submit-memo", json=memo_data)
+    proposal_id = create_response.json()["id"]
+
+    vote_data = {
+        "proposal_id": proposal_id,
+        "voter_address": "NOnChainUser",
+        "vote": 1
+    }
+
+    response = client.post("/vote", json=vote_data)
+    assert response.status_code == 400
+    mock_client.has_voted.assert_called_once_with(proposal_id, "NOnChainUser")
+    mock_client.vote.assert_not_called()
+
+
+@patch("backend.app.main.get_neo_client")
+def test_has_voted_endpoint(mock_get_neo_client):
+    """Verify has_voted endpoint checks on-chain status."""
+    mock_client = MagicMock()
+    mock_client.create_proposal.return_value = {
+        "tx_hash": "0xabcd1234",
+        "proposal_id": 5
+    }
+    mock_client.has_voted.return_value = True
+    mock_get_neo_client.return_value = mock_client
+
+    # Create proposal
+    memo_data = {
+        "title": "HasVoted Check",
+        "summary": "Ensure has_voted works",
+        "cid": "QmHV",
+        "confidence": 70,
+        "metadata": {}
+    }
+    create_response = client.post("/submit-memo", json=memo_data)
+    proposal_id = create_response.json()["id"]
+
+    # Query has-voted
+    voter = "NHasVotedUser"
+    response = client.get(f"/proposals/{proposal_id}/has-voted/{voter}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["has_voted"] is True
+    mock_client.has_voted.assert_called_once_with(proposal_id, voter)
 
 
 @patch("backend.app.main.get_neo_client")

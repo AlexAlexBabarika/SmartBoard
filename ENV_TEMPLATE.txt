@@ -70,6 +70,16 @@ DATABASE_URL=sqlite:///./proposals.db
 # For PostgreSQL: postgresql://user:password@localhost/dbname
 
 # ===========================================
+# Simulated Voting Agent (demo/testing)
+# ===========================================
+# Enable autonomous, real-time vote simulation (1 vote / 2s per proposal)
+SIMULATED_VOTING_ENABLED=true
+SIMULATED_VOTING_INTERVAL_SECONDS=2.0
+SIMULATED_VOTING_MAX_VOTES_PER_PROPOSAL=200
+# Base "yes" bias blended with proposal confidence (0.0 - 1.0)
+SIMULATED_VOTING_YES_PROBABILITY=0.65
+
+# ===========================================
 # SpoonOS Configuration
 # ===========================================
 # Path to SpoonOS config file (if using spoon-cli)
@@ -112,6 +122,20 @@ STARTUP_SEARCH_SOURCES=demo,producthunt
 # ===========================================
 # If using Anthropic instead of OpenAI
 # ANTHROPIC_API_KEY=sk-ant-your-key-here
+
+# ===========================================
+# ElevenLabs Voice API Configuration
+# ===========================================
+# Get your ElevenLabs API key from: https://elevenlabs.io/app/settings/api-keys
+# ELEVENLABS_API_KEY=your-elevenlabs-api-key-here
+
+# Optional: Voice ID to use (default: Rachel - 21m00Tcm4TlvDq8ikWAM)
+# ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM
+
+# Optional: Model to use for text-to-speech
+# Available models on free tier: eleven_turbo_v2_5 (fast), eleven_multilingual_v2 (multilingual)
+# Default: eleven_turbo_v2_5
+# ELEVENLABS_MODEL=eleven_turbo_v2_5
 
 # ===========================================
 # Optional: Logging Configuration

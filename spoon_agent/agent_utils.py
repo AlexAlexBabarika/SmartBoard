@@ -108,7 +108,28 @@ def _call_anthropic(prompt: str, system_prompt: str, api_key: str, model: str) -
 
 
 def _simulated_llm_response(prompt: str) -> str:
-    """Generate a simulated LLM response for demo purposes."""
+    """
+    Generate a simulated LLM response for demo purposes.
+    Varies confidence_score based on startup data if available.
+    """
+    # Try to extract startup info from prompt to vary the response
+    confidence = 78  # Default
+    risk_score = 58  # Default
+    
+    try:
+        # Try to find startup data in prompt
+        import re
+        startup_match = re.search(r'"name"\s*:\s*"([^"]+)"', prompt)
+        if startup_match:
+            startup_name = startup_match.group(1)
+            # Vary confidence based on startup name hash (deterministic but varied)
+            name_hash = hash(startup_name) % 100
+            confidence = 60 + (name_hash % 30)  # Range: 60-89
+            risk_score = 100 - confidence + 20  # Inverse relationship
+            logger.debug(f"Simulated confidence for {startup_name}: {confidence}")
+    except Exception:
+        pass  # Use defaults if extraction fails
+    
     return json.dumps({
         "executive_summary": "NexGenAI presents a compelling investment opportunity in the rapidly growing enterprise AI automation market. The company's proprietary algorithms offer significant performance advantages, reducing training time by 70% while maintaining accuracy. With a strong founding team from Google AI Research and MIT, along with early traction showing 15% monthly growth, the company is well-positioned to capture market share. However, the competitive landscape is intense, and execution risks remain.",
 
@@ -171,8 +192,8 @@ def _simulated_llm_response(prompt: str) -> str:
             }
         ],
 
-        "risk_score": 58,
-        "confidence_score": 78,
+        "risk_score": risk_score,
+        "confidence_score": confidence,
 
         "recommendation": "INVEST with cautious optimism. NexGenAI demonstrates strong technical foundations and promising early traction. The $5M ask at $20M valuation is reasonable given current metrics and market opportunity. However, close monitoring of customer acquisition costs, retention metrics, and competitive positioning is essential. Recommend staged investment with milestones tied to customer growth targets.",
 
@@ -223,8 +244,58 @@ in your assessments. Output your analysis in JSON format."""
             memo_content = json.loads(json_match.group())
         else:
             memo_content = json.loads(response_text)
+        
+        # Validate and extract confidence_score with multiple fallback strategies
+        confidence_score = None
+        
+        # Strategy 1: Direct field
+        if "confidence_score" in memo_content:
+            confidence_score = memo_content["confidence_score"]
+        # Strategy 2: Alternative field names
+        elif "confidence" in memo_content:
+            confidence_score = memo_content["confidence"]
+        elif "confidenceScore" in memo_content:
+            confidence_score = memo_content["confidenceScore"]
+        # Strategy 3: Calculate from risk_score (inverse relationship)
+        elif "risk_score" in memo_content:
+            risk = memo_content.get("risk_score", 50)
+            # Scale: 0-100 risk -> 20-100 confidence (lower risk = higher confidence)
+            confidence_score = max(0, min(100, 100 - risk + 20))
+            logger.info(f"Calculated confidence_score from risk_score: {confidence_score}")
+        # Strategy 4: Extract from recommendation text
+        elif "recommendation" in memo_content:
+            rec_text = str(memo_content.get("recommendation", "")).upper()
+            if "INVEST" in rec_text and "STRONG" in rec_text:
+                confidence_score = 85
+            elif "INVEST" in rec_text:
+                confidence_score = 75
+            elif "WATCH" in rec_text:
+                confidence_score = 60
+            elif "PASS" in rec_text or "REJECT" in rec_text:
+                confidence_score = 40
+            else:
+                confidence_score = 70
+            logger.info(f"Derived confidence_score from recommendation text: {confidence_score}")
+        
+        # Validate and set confidence_score
+        if confidence_score is None:
+            logger.warning("Could not determine confidence_score, using default: 75")
+            confidence_score = 75
+        
+        # Ensure it's a valid integer in range
+        try:
+            conf = int(float(confidence_score))  # Handle string numbers
+            confidence_score = max(0, min(100, conf))  # Clamp to 0-100
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Invalid confidence_score format: {confidence_score}, using 75. Error: {e}")
+            confidence_score = 75
+        
+        memo_content["confidence_score"] = confidence_score
+        logger.info(f"Final confidence_score: {confidence_score}")
+        
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse LLM response as JSON: {e}")
+        logger.error(f"Response text (first 500 chars): {response_text[:500]}")
         logger.warning("Using simulated response instead")
         memo_content = json.loads(_simulated_llm_response(prompt))
 

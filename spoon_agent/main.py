@@ -15,6 +15,13 @@ import shutil
 from pathlib import Path
 from dotenv import load_dotenv
 
+# Load environment variables from project root or current directory
+env_path = Path(__file__).parent.parent / '.env'
+if env_path.exists():
+    load_dotenv(env_path)
+else:
+    load_dotenv()  # Fallback to current directory
+
 from agent_utils import (
     generate_deal_memo,
     render_memo_html,
@@ -23,12 +30,6 @@ from agent_utils import (
     submit_to_backend
 )
 
-# Load environment variables from project root or current directory
-env_path = Path(__file__).parent.parent / '.env'
-if env_path.exists():
-    load_dotenv(env_path)
-else:
-    load_dotenv()  # Fallback to current directory
 
 # Configure logging to stderr so stdout is clean for JSON output
 logging.basicConfig(
@@ -37,6 +38,24 @@ logging.basicConfig(
     stream=sys.stderr  # Log to stderr, keep stdout clean for JSON
 )
 logger = logging.getLogger(__name__)
+
+
+def _derive_category(sector: str) -> str:
+    """Map arbitrary sector strings to UI categories."""
+    if not sector:
+        return None
+    s = sector.lower()
+    if "ai" in s or "ml" in s:
+        return "AI & ML"
+    if "health" in s or "bio" in s or "med" in s:
+        return "Healthcare"
+    if "clean" in s or "climate" in s or "energy" in s or "green" in s:
+        return "CleanTech"
+    if "web3" in s or "blockchain" in s or "crypto" in s or "defi" in s:
+        return "Web3"
+    if "fintech" in s or "finance" in s or "payment" in s or "bank" in s:
+        return "FinTech"
+    return None
 
 
 def process_startup_data(startup_data: dict, submit_callback=None) -> dict:
@@ -71,7 +90,30 @@ def process_startup_data(startup_data: dict, submit_callback=None) -> dict:
     ipfs_cid = upload_to_ipfs(
         pdf_bytes, f"{startup_data.get('name', 'memo')}.pdf")
 
-    # Step 5: Prepare submission data
+    # Step 5: Prepare submission data (add category/tags for frontend filters)
+    sector = startup_data.get("sector", "unknown")
+    stage = startup_data.get("stage", "unknown")
+    category = _derive_category(sector) or sector
+    tags = {t for t in [category, sector, stage] if t}
+
+    # Get current Storacha space for tagging
+    storacha_space = None
+    try:
+        storacha_cmd = os.getenv("STORACHA_CLI", "storacha")
+        if shutil.which(storacha_cmd):
+            result = subprocess.run(
+                [storacha_cmd, "space", "current"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                space_name = result.stdout.strip()
+                if space_name and space_name != "none":
+                    storacha_space = space_name
+    except Exception:
+        pass  # Fail silently, space tagging is optional
+
     submission = {
         "title": f"Investment Memo: {startup_data.get('name')}",
         "summary": memo_content.get("executive_summary", "")[:500],
@@ -79,8 +121,10 @@ def process_startup_data(startup_data: dict, submit_callback=None) -> dict:
         "confidence": memo_content.get("confidence_score", 75),
         "metadata": {
             "startup_name": startup_data.get("name"),
-            "sector": startup_data.get("sector", "unknown"),
-            "stage": startup_data.get("stage", "unknown"),
+            "sector": sector,
+            "stage": stage,
+            "category": category,
+            "tags": sorted(tags),
             "risk_score": memo_content.get("risk_score", 50),
             "swot_summary": {
                 "strengths": len(memo_content.get("swot", {}).get("strengths", [])),
@@ -90,6 +134,10 @@ def process_startup_data(startup_data: dict, submit_callback=None) -> dict:
             }
         }
     }
+    
+    # Add Storacha space to metadata if available
+    if storacha_space:
+        submission["metadata"]["storacha_space"] = storacha_space
 
     # Step 6: Submit to backend
     logger.info("Submitting to DAO backend...")

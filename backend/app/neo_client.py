@@ -8,6 +8,7 @@ import logging
 from typing import Dict, Any
 import hashlib
 import time
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +153,61 @@ class NeoClient:
         
         # Real implementation would query the contract
         return {}
+
+    def has_voted(self, proposal_id: int, voter: str) -> bool:
+        """
+        Check if the voter has already voted on-chain.
+
+        Uses the smart contract `has_voted` method when a real RPC endpoint is
+        configured. Falls back to the in-memory simulation map in demo mode.
+        """
+        if self.is_simulated:
+            return self._simulate_has_voted(proposal_id, voter)
+
+        if not all([self.rpc_url, self.contract_hash]):
+            logger.warning(
+                "RPC URL or contract hash missing; cannot verify on-chain vote status")
+            return False
+
+        # Normalize voter input (expects a hex-encoded script hash when not simulated)
+        voter_script_hash = voter[2:] if voter.startswith("0x") else voter
+        try:
+            payload = {
+                "jsonrpc": "2.0",
+                "method": "invokefunction",
+                "params": [
+                    self.contract_hash,
+                    "has_voted",
+                    [
+                        {"type": "Integer", "value": proposal_id},
+                        {"type": "Hash160", "value": voter_script_hash}
+                    ]
+                ],
+                "id": 1
+            }
+            response = requests.post(self.rpc_url, json=payload, timeout=10)
+            response.raise_for_status()
+            result = response.json().get("result") or {}
+            stack = result.get("stack") or []
+            if not stack:
+                return False
+
+            top = stack[0]
+            value = top.get("value")
+            value_type = top.get("type")
+
+            if value_type == "Boolean":
+                return bool(value)
+            if value_type == "Integer":
+                try:
+                    return int(value or 0) != 0
+                except Exception:
+                    return False
+
+            return False
+        except Exception as exc:
+            logger.error(f"Error checking on-chain vote status: {exc}")
+            raise
     
     # Simulation methods
     
@@ -198,6 +254,10 @@ class NeoClient:
         logger.info(f"[SIMULATED] Recorded vote on proposal {proposal_id} with TX: {tx_hash}")
         return {"tx_hash": tx_hash}
     
+    def _simulate_has_voted(self, proposal_id: int, voter: str) -> bool:
+        """Check simulated vote registry for a prior vote."""
+        return f"{proposal_id}:{voter}" in self.simulated_votes
+
     def _simulate_finalize(self, proposal_id: int) -> Dict[str, Any]:
         """Simulate finalizing a proposal."""
         tx_data = f"finalize{proposal_id}{time.time()}"

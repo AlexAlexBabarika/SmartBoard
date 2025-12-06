@@ -154,6 +154,8 @@ def finalize_proposal(proposal_id: int) -> bool:
         return False
     
     deadline = int(parts[2])
+    yes_votes = int(parts[4])
+    no_votes = int(parts[5])
     finalized = int(parts[6])
     
     # Check if already finalized
@@ -170,6 +172,30 @@ def finalize_proposal(proposal_id: int) -> bool:
     updated_data = '|'.join(parts)
     put(proposal_key, updated_data)
     
+    # Invoke user-extensible hooks based on outcome
+    if yes_votes > no_votes:
+        on_proposal_approved(proposal_id, parts[0], parts[1], yes_votes, no_votes)
+    else:
+        on_proposal_rejected(proposal_id, parts[0], parts[1], yes_votes, no_votes)
+    
+    return True
+
+
+@public
+def on_proposal_approved(proposal_id: int, title: str, ipfs_hash: str, yes_votes: int, no_votes: int) -> bool:
+    """
+    Hook: override to run custom logic when a proposal is approved.
+    Default is a no-op; return False to signal failure if you add checks.
+    """
+    return True
+
+
+@public
+def on_proposal_rejected(proposal_id: int, title: str, ipfs_hash: str, yes_votes: int, no_votes: int) -> bool:
+    """
+    Hook: override to run custom logic when a proposal is rejected or tied.
+    Default is a no-op; return False to signal failure if you add checks.
+    """
     return True
 
 
