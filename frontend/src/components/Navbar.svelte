@@ -11,6 +11,7 @@
   let mobileMenuOpen = false;
   let showAddressPrompt = false;
   let addressInput = "";
+  let emailInput = "";
   let addressInputElement;
 
   // Lock body scroll when modal is open
@@ -41,6 +42,7 @@
       // Show prompt for wallet address
       showAddressPrompt = true;
       addressInput = "";
+      emailInput = "";
       // Focus the input after the modal is shown
       setTimeout(() => {
         if (addressInputElement) {
@@ -52,15 +54,20 @@
 
   function handleAddressSubmit() {
     if (addressInput.trim()) {
-      dispatch("connectWallet", { address: addressInput.trim() });
+      dispatch("connectWallet", { 
+        address: addressInput.trim(),
+        email: emailInput.trim() || null
+      });
       showAddressPrompt = false;
       addressInput = "";
+      emailInput = "";
     }
   }
 
   function handleAddressCancel() {
     showAddressPrompt = false;
     addressInput = "";
+    emailInput = "";
   }
 
   function truncateAddress(address) {
@@ -244,6 +251,21 @@
         }}
         autofocus
       />
+      <div class="mb-4">
+        <label class="block text-sm text-pe-muted mb-2">
+          Optional: Add your email (solely for notifications)
+        </label>
+        <input
+          type="email"
+          class="search-input-pe w-full"
+          placeholder="your.email@example.com"
+          bind:value={emailInput}
+          on:keydown={(e) => {
+            if (e.key === "Enter") handleAddressSubmit();
+            if (e.key === "Escape") handleAddressCancel();
+          }}
+        />
+      </div>
       <div class="flex gap-3 justify-end">
         <button
           class="px-4 py-2 rounded-pe text-pe-muted hover:text-pe-text hover:bg-pe-card transition-colors focus-ring"
