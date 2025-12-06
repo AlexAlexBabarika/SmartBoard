@@ -54,18 +54,11 @@
           <div
             class="flex items-center gap-3 p-4 rounded-pe-lg bg-pe-card/80 backdrop-blur-sm border border-pe-border"
           >
-            <svg
-              class="w-10 h-10 text-pe-accent"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path
-                d="M12 2C8.5 2 4 4.5 4 9.5C4 14 8 18 12 22C16 18 20 14 20 9.5C20 4.5 15.5 2 12 2ZM12 18.5C9 15.5 6 12.5 6 9.5C6 5.91 9.13 4 12 4C14.87 4 18 5.91 18 9.5C18 12.5 15 15.5 12 18.5Z"
-              />
-              <path
-                d="M12 6C10.5 6 8.5 7 8.5 9.5C8.5 11.5 10 13 12 14.5C14 13 15.5 11.5 15.5 9.5C15.5 7 13.5 6 12 6Z"
-              />
-            </svg>
+            <img
+              src="/logo.svg"
+              alt="SmartBoard Logo"
+              class="w-14 h-14"
+            />
             <span class="font-display font-semibold text-2xl text-pe-text"
               >SmartBoard</span
             >
