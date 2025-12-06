@@ -75,7 +75,7 @@
     "fastapi",
     "requests",
     "jinja2",
-    "weasyprint",
+    "reportlab",
     "python-dotenv"
   ],
   

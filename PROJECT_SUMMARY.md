@@ -122,7 +122,7 @@ python spoon_agent/main.py --demo
 |-------|-----------|
 | **Frontend** | Svelte 4, Vite 5, TailwindCSS 3, DaisyUI 4 |
 | **Backend** | FastAPI 0.109, Python 3.10+, SQLAlchemy 2 |
-| **AI/Agent** | OpenAI GPT-4, WeasyPrint, Jinja2 |
+| **AI/Agent** | OpenAI GPT-4, reportlab, Jinja2 |
 | **Blockchain** | NEO (neo3-boa, neo-mamba) |
 | **Storage** | IPFS (Storacha), SQLite |
 | **Testing** | pytest, pytest-asyncio, pytest-mock |
