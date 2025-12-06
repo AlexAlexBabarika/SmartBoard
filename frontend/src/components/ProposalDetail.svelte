@@ -12,6 +12,7 @@
   let error = null;
   let voting = false;
   let finalizing = false;
+  let pdfLoading = true;
 
   $: wallet = $walletStore;
 
@@ -22,6 +23,7 @@
   async function loadProposal() {
     try {
       loading = true;
+      pdfLoading = true;
       error = null;
       currentGateway = 'dweb';
       proposal = await proposalAPI.getProposal(proposalId);
@@ -275,11 +277,19 @@
       {/if}
 
       <!-- PDF Preview iframe -->
-      <div class="mt-4 border border-pe-border rounded-pe-lg overflow-hidden bg-pe-panel" style="height: 600px;">
+      <div class="mt-4 border border-pe-border rounded-pe-lg overflow-hidden bg-pe-panel relative" style="height: 600px;">
+        {#if pdfLoading}
+          <div class="absolute inset-0 flex flex-col items-center justify-center bg-pe-panel">
+            <div class="w-12 h-12 border-3 border-pe-accent/30 border-t-pe-accent rounded-full animate-spin"></div>
+            <p class="text-pe-muted mt-4">Loading PDF...</p>
+          </div>
+        {/if}
         <iframe
           src={getIpfsUrl(proposal.ipfs_cid, currentGateway)}
           title="Investment Memo PDF"
           class="w-full h-full bg-white"
+          on:load={() => pdfLoading = false}
+          on:error={() => pdfLoading = false}
         ></iframe>
       </div>
     </div>
