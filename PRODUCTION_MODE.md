@@ -50,7 +50,7 @@ python spoon_agent/main.py --demo
 
 ### ✅ Real Operations:
 - **LLM**: Real OpenAI API calls (costs money)
-- **PDF**: Real PDF generation (if WeasyPrint installed)
+- **PDF**: Real PDF generation using reportlab (pure Python, no system dependencies)
 - **IPFS**: Real uploads to Storacha via CLI (if configured)
 - **Blockchain**: Real NEO transactions (if keys valid)
 
