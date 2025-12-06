@@ -97,6 +97,20 @@
         </button>
         <button
           class="nav-link"
+          class:active={currentView === "organizations"}
+          on:click={() => handleNavigation("organizations")}
+        >
+          Organizations
+        </button>
+        <button
+          class="nav-link"
+          class:active={currentView === "createOrganization"}
+          on:click={() => handleNavigation("createOrganization")}
+        >
+          Create Organization
+        </button>
+        <button
+          class="nav-link"
           class:active={currentView === "qa"}
           on:click={() => handleNavigation("qa")}
         >
@@ -187,6 +201,20 @@
           on:click={() => handleNavigation("create")}
         >
           Create Proposal
+        </button>
+        <button
+          class="mobile-nav-link"
+          class:active={currentView === "organizations"}
+          on:click={() => handleNavigation("organizations")}
+        >
+          Organizations
+        </button>
+        <button
+          class="mobile-nav-link"
+          class:active={currentView === "createOrganization"}
+          on:click={() => handleNavigation("createOrganization")}
+        >
+          Create Organization
         </button>
         <button
           class="mobile-nav-link"
