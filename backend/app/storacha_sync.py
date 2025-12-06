@@ -26,6 +26,9 @@ import tempfile
 
 from .db import SessionLocal
 from .models import Proposal as DBProposal
+from .research_pipeline_adapter import run_research_pipeline
+from .manifest_manager import schedule_manifest_refresh
+from .utils import clean_cid
 
 logger = logging.getLogger(__name__)
 
@@ -205,13 +208,17 @@ def check_cid_exists(cid: str, db) -> bool:
         True if CID exists, False otherwise
     """
     # Clean CID for comparison
-    clean_cid = cid.replace("https://", "").replace("http://", "")
-    clean_cid = re.sub(r"^[^/]+/ipfs/", "", clean_cid)
-    clean_cid = clean_cid.replace("ipfs://", "")
+    clean_cid = clean_cid(cid)
     
     existing = db.query(DBProposal).filter(
         DBProposal.ipfs_cid == clean_cid
     ).first()
+def check_title_exists(title: str, db) -> bool:
+    """Check if a proposal with the given title already exists."""
+    if not title:
+        return False
+    existing = db.query(DBProposal).filter(DBProposal.title == title).first()
+    return existing is not None
     
     return existing is not None
 
@@ -241,6 +248,20 @@ def _create_proposal_in_db(
     import time
     from .neo_client import NeoClient
     
+    proposal_payload = {
+        "title": title,
+        "summary": summary,
+        "cid": cid,
+        "confidence": confidence,
+        "metadata": metadata or {}
+    }
+    proposal_payload = run_research_pipeline(proposal_payload, source="storacha_sync")
+    title = proposal_payload.get("title", title)
+    summary = proposal_payload.get("summary", summary)
+    cid = proposal_payload.get("cid", cid)
+    confidence = proposal_payload.get("confidence", confidence)
+    metadata = proposal_payload.get("metadata", metadata or {})
+
     # Calculate deadline (7 days from now)
     deadline = int(time.time()) + (7 * 24 * 60 * 60)
     
@@ -278,6 +299,7 @@ def _create_proposal_in_db(
     db.add(db_proposal)
     db.commit()
     db.refresh(db_proposal)
+    schedule_manifest_refresh(source="storacha_sync")
     
     return {
         "id": db_proposal.id,
@@ -316,8 +338,10 @@ def sync_proposal_from_manifest(
         return None
     
     # Check if already exists
-    if skip_existing and check_cid_exists(cid, db):
-        logger.info(f"Proposal with CID {cid} already exists, skipping")
+    if skip_existing and (check_cid_exists(cid, db) or check_title_exists(proposal_data.get("title"), db)):
+        logger.info(f"Proposal with CID or title already exists, skipping")
+    if skip_existing and (check_cid_exists(cid, db) or check_title_exists(proposal_data.get("title"), db)):
+        logger.info(f"Proposal with CID or title already exists, skipping")
         return None
     
     # Extract proposal fields
@@ -549,4 +573,62 @@ def get_existing_cids() -> List[str]:
         return [p.ipfs_cid for p in proposals]
     finally:
         db.close()
+
+
+# Auto-sync configuration
+AUTO_SYNC_ENABLED = os.getenv("STORACHA_AUTO_SYNC", "false").lower() == "true"
+SYNC_INTERVAL_HOURS = float(os.getenv("STORACHA_SYNC_INTERVAL_HOURS", "24"))
+SYNC_MANIFEST_CID = os.getenv("STORACHA_SYNC_MANIFEST_CID")  # Optional: specific manifest CID
+SYNC_SKIP_EXISTING = os.getenv("STORACHA_SYNC_SKIP_EXISTING", "true").lower() == "true"
+
+
+def periodic_storacha_sync():
+    """
+    Periodic background task that syncs proposals from Storacha manifest.
+    
+    This function runs in a loop, syncing from the manifest at regular intervals.
+    It uses the manifest CID from manifest_manager if available, or falls back to
+    STORACHA_SYNC_MANIFEST_CID environment variable.
+    """
+    if not AUTO_SYNC_ENABLED:
+        logger.info("Storacha auto-sync is disabled (STORACHA_AUTO_SYNC=false)")
+        return
+    
+    logger.info(f"Starting periodic Storacha sync (interval: {SYNC_INTERVAL_HOURS} hours)")
+    
+    import time
+    
+    while True:
+        try:
+            logger.info("Running scheduled Storacha sync...")
+            
+            # Get manifest CID (prefer from manifest_manager, fallback to env)
+            from .manifest_manager import get_manifest_cid
+            manifest_cid = get_manifest_cid() or SYNC_MANIFEST_CID
+            
+            if not manifest_cid:
+                logger.warning(
+                    "No manifest CID available for sync. "
+                    "Set STORACHA_SYNC_MANIFEST_CID or ensure manifest is uploaded."
+                )
+            else:
+                logger.info(f"Syncing from manifest CID: {manifest_cid}")
+                result = sync_from_manifest(
+                    manifest_cid=manifest_cid,
+                    skip_existing=SYNC_SKIP_EXISTING
+                )
+                
+                if result.get("success"):
+                    logger.info(
+                        f"Sync cycle complete: {result.get('synced', 0)} synced, "
+                        f"{result.get('skipped', 0)} skipped, "
+                        f"{result.get('failed', 0)} failed"
+                    )
+                else:
+                    logger.error(f"Sync cycle failed: {result.get('error', 'Unknown error')}")
+        except Exception as e:
+            logger.error(f"Error in periodic Storacha sync: {e}", exc_info=True)
+        
+        # Wait for the specified interval
+        time.sleep(SYNC_INTERVAL_HOURS * 3600)
 

@@ -8,8 +8,10 @@ This script demonstrates the complete research and analysis pipeline:
 3. Present a consolidated report with detailed analysis
 """
 import asyncio
+import copy
 import json
 import argparse
+import os
 from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
 from dataclasses import dataclass, asdict
@@ -24,6 +26,12 @@ from spoon_ai.agents.analyst_agents import (
     BaseAnalystAgent,
     AnalystRecommendation
 )
+
+# Reserved metadata bucket to avoid clobbering user-facing fields
+RESEARCH_METADATA_KEY = "_research"
+RESEARCH_PIPELINE_TAG = "research_pipeline_v1"
+# Default test-mode toggle (used to keep behavior non-intrusive unless configured)
+PIPELINE_TEST_MODE = os.getenv("RESEARCH_PIPELINE_TEST_MODE", "true").lower() == "true"
 
 class ProjectType(str, Enum):
     """Supported project types for analysis."""
@@ -401,6 +409,82 @@ async def run_all_tests():
         print(f"   Confidence: {verdict['average_confidence']*100:.0f}%")
     
     return results
+
+
+def process_proposal(proposal: Dict[str, Any], test_mode: Optional[bool] = None) -> Dict[str, Any]:
+    """
+    Public, idempotent hook to run a proposal through the research pipeline.
+
+    Args:
+        proposal: Proposal payload (expects 'title' and metadata dict)
+        test_mode: Optional override for pipeline test mode (defaults to env)
+
+    Returns:
+        Proposal dict with research results attached under reserved metadata key.
+        On failure, returns the original proposal unchanged (fail-open).
+    """
+    if not isinstance(proposal, dict):
+        return proposal
+
+    proposal_copy = copy.deepcopy(proposal)
+    metadata_key = (
+        "metadata"
+        if "metadata" in proposal_copy
+        else "proposal_metadata"
+        if "proposal_metadata" in proposal_copy
+        else "metadata"
+    )
+    metadata = copy.deepcopy(proposal_copy.get(metadata_key) or {})
+
+    existing_research = metadata.get(RESEARCH_METADATA_KEY, {})
+    if isinstance(existing_research, dict) and existing_research.get("tag") == RESEARCH_PIPELINE_TAG:
+        proposal_copy[metadata_key] = metadata
+        return proposal_copy
+
+    resolved_test_mode = PIPELINE_TEST_MODE if test_mode is None else bool(test_mode)
+
+    project_name = proposal_copy.get("title") or metadata.get("startup_name") or "Unknown Project"
+    project_type_str = metadata.get("project_type") or metadata.get("sector") or ProjectType.TECH_STARTUP.value
+    project_type = (
+        ProjectType(project_type_str)
+        if project_type_str in ProjectType._value2member_map_
+        else ProjectType.TECH_STARTUP
+    )
+
+    pipeline = ResearchPipeline(test_mode=resolved_test_mode)
+
+    def _run_pipeline() -> Dict[str, Any]:
+        loop = asyncio.new_event_loop()
+        try:
+            asyncio.set_event_loop(loop)
+            return loop.run_until_complete(pipeline.analyze_project(project_name, project_type))
+        finally:
+            loop.close()
+
+    try:
+        analysis = _run_pipeline()
+    except Exception as exc:
+        # Fail-open: preserve original proposal and record error under reserved metadata
+        metadata.setdefault(RESEARCH_METADATA_KEY, {})
+        if isinstance(metadata[RESEARCH_METADATA_KEY], dict):
+            errors = metadata[RESEARCH_METADATA_KEY].get("errors", [])
+            errors.append(str(exc))
+            metadata[RESEARCH_METADATA_KEY]["errors"] = errors
+        proposal_copy[metadata_key] = metadata
+        return proposal_copy
+
+    metadata.setdefault(RESEARCH_METADATA_KEY, {})
+    if isinstance(metadata[RESEARCH_METADATA_KEY], dict):
+        metadata[RESEARCH_METADATA_KEY].update(
+            {
+                "tag": RESEARCH_PIPELINE_TAG,
+                "analysis": analysis,
+                "updated_at": datetime.utcnow().isoformat(),
+                "test_mode": resolved_test_mode,
+            }
+        )
+    proposal_copy[metadata_key] = metadata
+    return proposal_copy
 
 async def main():
     """Main entry point for the research pipeline."""

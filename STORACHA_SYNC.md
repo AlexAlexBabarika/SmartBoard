@@ -2,6 +2,22 @@
 
 This feature allows you to sync proposals from Storacha/IPFS storage into your database, automatically checking for duplicates and only adding unique proposals.
 
+## 🚀 Automated Sync
+
+The system can automatically sync proposals from Storacha on a schedule. Enable it with:
+
+```bash
+STORACHA_AUTO_SYNC=true
+STORACHA_SYNC_INTERVAL_HOURS=24
+```
+
+The automated sync will:
+- Run in the background on a schedule
+- Use the latest manifest CID from `manifest_manager` (or `STORACHA_SYNC_MANIFEST_CID` if set)
+- Automatically skip existing proposals
+- Log all sync activities
+- Continue running even if individual syncs fail
+
 ## Overview
 
 The sync system supports two methods:
@@ -297,6 +313,72 @@ This ensures high availability even if one gateway is down.
 3. **Use async mode** for large syncs to avoid timeouts
 4. **Check existing CIDs first** to see what's already synced
 5. **Keep manifest updated** by regenerating it periodically
+
+## Automated Sync Configuration
+
+### Enable Auto-Sync
+
+Add to your `.env` file:
+
+```bash
+# Enable automatic Storacha sync
+STORACHA_AUTO_SYNC=true
+
+# Sync interval (in hours)
+STORACHA_SYNC_INTERVAL_HOURS=24
+
+# Optional: Use specific manifest CID
+# If not set, uses latest from manifest_manager
+STORACHA_SYNC_MANIFEST_CID=bafy...
+
+# Skip existing proposals (recommended)
+STORACHA_SYNC_SKIP_EXISTING=true
+```
+
+### How It Works
+
+1. **On Backend Startup**: If `STORACHA_AUTO_SYNC=true`, a background task starts
+2. **Periodic Sync**: Every `STORACHA_SYNC_INTERVAL_HOURS` hours:
+   - Gets manifest CID (from `manifest_manager` or env var)
+   - Downloads manifest from IPFS
+   - Checks each proposal CID against database
+   - Adds only new proposals
+   - Logs results
+
+3. **Manifest Updates**: When new proposals are added locally, the manifest is automatically refreshed and uploaded to Storacha
+
+### Check Sync Status
+
+```bash
+GET /sync/storacha/status
+```
+
+**Response:**
+```json
+{
+  "auto_sync_enabled": true,
+  "sync_interval_hours": 24,
+  "manifest_cid": "bafy...",
+  "skip_existing": true,
+  "existing_cids_count": 10
+}
+```
+
+### Health Check
+
+The `/health` endpoint now includes sync status:
+
+```bash
+GET /health
+```
+
+**Response includes:**
+```json
+{
+  "storacha_auto_sync_enabled": true,
+  "storacha_sync_interval_hours": 24
+}
+```
 
 ## Troubleshooting
 

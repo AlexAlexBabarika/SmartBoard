@@ -5,6 +5,7 @@ Main application entry point with all API endpoints.
 
 import os
 import asyncio
+from concurrent.futures import TimeoutError as FuturesTimeout
 from typing import List, Optional
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Query
@@ -38,8 +39,17 @@ from .startup_discovery import (
 from .storacha_sync import (
     sync_from_manifest,
     sync_from_cids,
-    get_existing_cids
+    get_existing_cids,
+    AUTO_SYNC_ENABLED,
+    SYNC_INTERVAL_HOURS,
+    periodic_storacha_sync
 )
+from .manifest_manager import (
+    schedule_manifest_refresh,
+    get_manifest_cid
+)
+from .utils import clean_cid  # new helper for consistent CID comparison
+from .research_pipeline_adapter import run_research_pipeline
 
 # Configure logging (if not already configured)
 if not logging.getLogger().handlers:
@@ -54,6 +64,13 @@ app = FastAPI(
 
 # Thread pool executor for CPU-bound or blocking operations
 executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="startup_processor")
+
+# Thread pool executor for Storacha sync (separate to avoid blocking)
+storacha_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="storacha_sync")
+
+# Fetch-time Storacha sync configuration
+STORACHA_SYNC_ON_FETCH = os.getenv("STORACHA_SYNC_ON_FETCH", "true").lower() == "true"
+STORACHA_SYNC_ON_FETCH_TIMEOUT = float(os.getenv("STORACHA_SYNC_ON_FETCH_TIMEOUT", "3.0"))
 
 # CORS middleware for frontend
 app.add_middleware(
@@ -129,13 +146,24 @@ async def startup_event():
     else:
         logger.info("Automatic startup discovery is disabled")
         logger.info(f"To enable, set AUTO_SEARCH_STARTUPS=true in .env file")
+    
+    # Start background Storacha sync task if enabled
+    if AUTO_SYNC_ENABLED:
+        logger.info("Starting automatic Storacha sync background task...")
+        logger.info(f"Sync interval: {SYNC_INTERVAL_HOURS} hours")
+        # Run in thread pool since it's a blocking function
+        storacha_executor.submit(periodic_storacha_sync)
+    else:
+        logger.info("Automatic Storacha sync is disabled")
+        logger.info(f"To enable, set STORACHA_AUTO_SYNC=true in .env file")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown."""
-    logger.info("Shutting down thread pool executor...")
+    logger.info("Shutting down thread pool executors...")
     executor.shutdown(wait=True)
+    storacha_executor.shutdown(wait=True)
     logger.info("Shutdown complete")
 
 
@@ -207,7 +235,9 @@ async def health_check():
         "service": "AI Investment Scout DAO Backend",
         "demo_mode": os.getenv("DEMO_MODE", "true") == "true",
         "auto_search_enabled": AUTO_SEARCH_ENABLED,
-        "search_interval_hours": SEARCH_INTERVAL_HOURS
+        "search_interval_hours": SEARCH_INTERVAL_HOURS,
+        "storacha_auto_sync_enabled": AUTO_SYNC_ENABLED,
+        "storacha_sync_interval_hours": SYNC_INTERVAL_HOURS
     }
 
 
@@ -268,6 +298,20 @@ async def discovery_status():
     }
 
 
+@app.get("/sync/storacha/status")
+async def storacha_sync_status():
+    """Get status of automatic Storacha sync."""
+    manifest_cid = get_manifest_cid()
+    
+    return {
+        "auto_sync_enabled": AUTO_SYNC_ENABLED,
+        "sync_interval_hours": SYNC_INTERVAL_HOURS,
+        "manifest_cid": manifest_cid,
+        "skip_existing": os.getenv("STORACHA_SYNC_SKIP_EXISTING", "true").lower() == "true",
+        "existing_cids_count": len(get_existing_cids())
+    }
+
+
 def submit_proposal_direct(
     title: str,
     summary: str,
@@ -289,6 +333,40 @@ def submit_proposal_direct(
     
     db = SessionLocal()
     try:
+        # Deduplicate by CID or title
+        existing = db.query(DBProposal).filter(
+            (DBProposal.ipfs_cid == clean_cid(cid)) | (DBProposal.title == title)
+        ).first()
+        if existing:
+            logger.info("Duplicate proposal detected; returning existing record (direct submit)")
+            return {
+                "id": existing.id,
+                "title": existing.title,
+                "summary": existing.summary,
+                "ipfs_cid": existing.ipfs_cid,
+                "confidence": existing.confidence,
+                "status": existing.status,
+                "yes_votes": existing.yes_votes,
+                "no_votes": existing.no_votes,
+                "created_at": existing.created_at.isoformat(),
+                "deadline": existing.deadline,
+                "metadata": existing.proposal_metadata
+            }
+
+        proposal_payload = {
+            "title": title,
+            "summary": summary,
+            "cid": cid,
+            "confidence": confidence,
+            "metadata": metadata or {}
+        }
+        proposal_payload = run_research_pipeline(proposal_payload, source="submit_proposal_direct")
+        title = proposal_payload.get("title", title)
+        summary = proposal_payload.get("summary", summary)
+        cid = proposal_payload.get("cid", cid)
+        confidence = proposal_payload.get("confidence", confidence)
+        metadata = proposal_payload.get("metadata", metadata or {})
+
         # Calculate deadline (7 days from now, in block timestamp)
         deadline = int(time.time()) + (7 * 24 * 60 * 60)
 
@@ -318,6 +396,9 @@ def submit_proposal_direct(
         db.add(db_proposal)
         db.commit()
         db.refresh(db_proposal)
+
+        # Refresh Storacha manifest in background (fail-open)
+        schedule_manifest_refresh(source="submit_proposal_direct")
 
         logger.info(
             f"✅ Proposal created directly: ID={db_proposal.id}, TX={tx_result.get('tx_hash')}")
@@ -354,28 +435,62 @@ async def submit_memo(request: SubmitMemoRequest, db: Session = Depends(get_db))
     logger.info(f"Submitting memo: {request.title}")
 
     try:
+        proposal_payload = {
+            "title": request.title,
+            "summary": request.summary,
+            "cid": request.cid,
+            "confidence": request.confidence,
+            "metadata": request.metadata
+        }
+        proposal_payload = run_research_pipeline(proposal_payload, source="submit_memo")
+        title = proposal_payload.get("title", request.title)
+        summary = proposal_payload.get("summary", request.summary)
+        cid = proposal_payload.get("cid", request.cid)
+        confidence = proposal_payload.get("confidence", request.confidence)
+        metadata = proposal_payload.get("metadata", request.metadata)
+
+        # Deduplicate by CID or title
+        existing = db.query(DBProposal).filter(
+            (DBProposal.ipfs_cid == clean_cid(cid)) | (DBProposal.title == title)
+        ).first()
+        if existing:
+            logger.info("Duplicate proposal detected; returning existing record (HTTP submit)")
+            return ProposalResponse(
+                id=existing.id,
+                title=existing.title,
+                summary=existing.summary,
+                ipfs_cid=existing.ipfs_cid,
+                confidence=existing.confidence,
+                status=existing.status,
+                yes_votes=existing.yes_votes,
+                no_votes=existing.no_votes,
+                created_at=existing.created_at.isoformat(),
+                deadline=existing.deadline,
+                metadata=existing.proposal_metadata
+            )
+
         # Calculate deadline (7 days from now, in block timestamp)
         import time
         deadline = int(time.time()) + (7 * 24 * 60 * 60)
 
         # Submit to NEO blockchain
         tx_result = get_neo_client().create_proposal(
-            title=request.title,
-            ipfs_hash=request.cid,
+            title=title,
+            ipfs_hash=cid,
             deadline=deadline,
-            confidence=request.confidence
+            confidence=confidence
         )
 
         # Store in local database
         db_proposal = DBProposal(
-            title=request.title,
-            summary=request.summary,
-            ipfs_cid=request.cid,
-            confidence=request.confidence,
+            title=title,
+            summary=summary,
+            ipfs_cid=cid,
+            confidence=confidence,
             status="active",
             yes_votes=0,
             no_votes=0,
-            proposal_metadata=request.metadata,
+            proposal_metadata=metadata,
             tx_hash=tx_result.get("tx_hash"),
             on_chain_id=tx_result.get("proposal_id"),
             deadline=deadline
@@ -384,6 +499,9 @@ async def submit_memo(request: SubmitMemoRequest, db: Session = Depends(get_db))
         db.add(db_proposal)
         db.commit()
         db.refresh(db_proposal)
+
+        # Refresh Storacha manifest in background (fail-open)
+        schedule_manifest_refresh(source="submit_memo")
 
         logger.info(
             f"Proposal created: ID={db_proposal.id}, TX={tx_result.get('tx_hash')}")
@@ -412,6 +530,20 @@ async def submit_memo(request: SubmitMemoRequest, db: Session = Depends(get_db))
 async def get_proposals(db: Session = Depends(get_db)):
     """Get list of all proposals with on-chain status."""
     try:
+        if STORACHA_SYNC_ON_FETCH:
+            manifest_cid = get_manifest_cid()
+            if manifest_cid:
+                try:
+                    future = storacha_executor.submit(sync_from_manifest, manifest_cid, True)
+                    future.result(timeout=STORACHA_SYNC_ON_FETCH_TIMEOUT)
+                except FuturesTimeout:
+                    logger.warning(
+                        "Manifest sync on fetch timed out; continuing without blocking",
+                        extra={"timeout_s": STORACHA_SYNC_ON_FETCH_TIMEOUT}
+                    )
+                except Exception as sync_exc:
+                    logger.debug("Manifest sync skipped due to error: %s", sync_exc)
+
         logger.info("Fetching proposals from database...")
         
         # Query database directly (SQLAlchemy handles async properly with check_same_thread=False)

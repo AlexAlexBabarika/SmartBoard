@@ -1,0 +1,1456 @@
+[
+  {
+    "cid": "bafkreif5ga27v7txhjzxprnsuk63xk56insbgezkgfigqi64bfidejlgx4",
+    "title": "Investment Memo: AIWorkflow",
+    "summary": "AIWorkflow, a YC S23 batch company, is seeking a $3M investment at a $15M valuation for product development and sales expansion. They operate in the enterprise automation market, competing with established players. The company has a solid monthly recurring revenue of $150K and a strong growth rate of 30%. The funding will be leveraged to expand their product capabilities and sales reach.",
+    "confidence": 70,
+    "metadata": {
+      "startup_name": "AIWorkflow",
+      "sector": "Enterprise AI",
+      "stage": "Seed",
+      "risk_score": 60,
+      "swot_summary": {
+        "strengths": 5,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      },
+      "_research": {
+        "tag": "research_pipeline_v1",
+        "analysis": {
+          "project": "Investment Memo: AIWorkflow",
+          "project_type": "tech_startup",
+          "timestamp": "2025-12-06T16:04:01.036864",
+          "research_summary": "Research summary for Investment Memo: AIWorkflow. This is a test response.",
+          "raw_research": {
+            "info": "Test data"
+          },
+          "analyses": {
+            "conservative": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "# Project - Conservative Investment Analysis\n\n**Risk Score:** 5.0/10\n**Adjusted Score:** 6.5/10 (with conservative bias)\n**Recommendation:** \u274c REJECT\n\n## Analysis Summary\n\n\n## Final Verdict\nAfter careful consideration, we cannot recommend investing in Project at this time. The project presents several risk factors that exceed our conservative risk tolerance thresholds. The adjusted risk score of 6.5 is above our conservative threshold of 3.0.",
+              "confidence": 0.1,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "moderate": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While there are some concerns, the potential upside may justify the calculated risk for investors with balanced risk tolerance.",
+              "confidence": 0.8,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "aggressive": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": true,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While risks are present, the potential rewards appear to justify the investment for those with higher risk tolerance.",
+              "confidence": 0.9,
+              "strengths": [],
+              "weaknesses": []
+            }
+          },
+          "final_verdict": {
+            "recommendation": "REJECT",
+            "approval_rate": "1/3",
+            "average_risk_score": 5.0,
+            "average_confidence": 0.6
+          },
+          "metadata": {
+            "test_mode": true,
+            "analyst_count": 3,
+            "analysis_timestamp": "2025-12-06T16:04:01.037302"
+          }
+        },
+        "updated_at": "2025-12-06T16:04:01.037469",
+        "test_mode": true
+      }
+    },
+    "created_at": "2025-12-06T16:04:01.045954",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreif5vf533gtgo6sip5vyq2hueut3rd5h7un2cww5ppbwgoqwg5myqi",
+    "title": "Investment Memo: AIWorkflow",
+    "summary": "AIWorkflow, a YC S23 Batch startup, is focused on building AI-powered workflow automation for enterprises. Having already raised a seed round of $2M, the company boasts an impressive monthly recurring revenue (MRR) of $150K and a strong growth rate of 30%. The current ask is $3M at a valuation of $15M, with funds to be used for product development and sales expansion. AIWorkflow operates in the promising enterprise automation market but faces competition from established players.",
+    "confidence": 70,
+    "metadata": {
+      "startup_name": "AIWorkflow",
+      "sector": "Enterprise AI",
+      "stage": "Seed",
+      "risk_score": 60,
+      "swot_summary": {
+        "strengths": 5,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      },
+      "_research": {
+        "tag": "research_pipeline_v1",
+        "analysis": {
+          "project": "Investment Memo: AIWorkflow",
+          "project_type": "tech_startup",
+          "timestamp": "2025-12-06T16:03:39.449255",
+          "research_summary": "Research summary for Investment Memo: AIWorkflow. This is a test response.",
+          "raw_research": {
+            "info": "Test data"
+          },
+          "analyses": {
+            "conservative": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "# Project - Conservative Investment Analysis\n\n**Risk Score:** 5.0/10\n**Adjusted Score:** 6.5/10 (with conservative bias)\n**Recommendation:** \u274c REJECT\n\n## Analysis Summary\n\n\n## Final Verdict\nAfter careful consideration, we cannot recommend investing in Project at this time. The project presents several risk factors that exceed our conservative risk tolerance thresholds. The adjusted risk score of 6.5 is above our conservative threshold of 3.0.",
+              "confidence": 0.1,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "moderate": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While there are some concerns, the potential upside may justify the calculated risk for investors with balanced risk tolerance.",
+              "confidence": 0.8,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "aggressive": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": true,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While risks are present, the potential rewards appear to justify the investment for those with higher risk tolerance.",
+              "confidence": 0.9,
+              "strengths": [],
+              "weaknesses": []
+            }
+          },
+          "final_verdict": {
+            "recommendation": "REJECT",
+            "approval_rate": "1/3",
+            "average_risk_score": 5.0,
+            "average_confidence": 0.6
+          },
+          "metadata": {
+            "test_mode": true,
+            "analyst_count": 3,
+            "analysis_timestamp": "2025-12-06T16:03:39.449747"
+          }
+        },
+        "updated_at": "2025-12-06T16:03:39.449858",
+        "test_mode": true
+      }
+    },
+    "created_at": "2025-12-06T16:03:39.456913",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreifyovbaigcopgaeyug4knbfxyplfuvuvzx4qvyqhbw3rjmwk3fvze",
+    "title": "Investment Memo: AIWorkflow",
+    "summary": "AIWorkflow, a YC S23 batch company, is an early-stage startup operating in the Enterprise AI sector. They focus on AI-powered workflow automation for enterprises. With an MRR of $150,000, a 30% growth rate, and 50 customers, they're showing promising early traction. The company has an 18-month runway and is seeking $3M at a $15M valuation to expand product development and sales.",
+    "confidence": 70,
+    "metadata": {
+      "startup_name": "AIWorkflow",
+      "sector": "Enterprise AI",
+      "stage": "Seed",
+      "risk_score": 55,
+      "swot_summary": {
+        "strengths": 4,
+        "weaknesses": 3,
+        "opportunities": 4,
+        "threats": 3
+      },
+      "_research": {
+        "tag": "research_pipeline_v1",
+        "analysis": {
+          "project": "Investment Memo: AIWorkflow",
+          "project_type": "tech_startup",
+          "timestamp": "2025-12-06T16:03:04.679459",
+          "research_summary": "Research summary for Investment Memo: AIWorkflow. This is a test response.",
+          "raw_research": {
+            "info": "Test data"
+          },
+          "analyses": {
+            "conservative": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "# Project - Conservative Investment Analysis\n\n**Risk Score:** 5.0/10\n**Adjusted Score:** 6.5/10 (with conservative bias)\n**Recommendation:** \u274c REJECT\n\n## Analysis Summary\n\n\n## Final Verdict\nAfter careful consideration, we cannot recommend investing in Project at this time. The project presents several risk factors that exceed our conservative risk tolerance thresholds. The adjusted risk score of 6.5 is above our conservative threshold of 3.0.",
+              "confidence": 0.1,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "moderate": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While there are some concerns, the potential upside may justify the calculated risk for investors with balanced risk tolerance.",
+              "confidence": 0.8,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "aggressive": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": true,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While risks are present, the potential rewards appear to justify the investment for those with higher risk tolerance.",
+              "confidence": 0.9,
+              "strengths": [],
+              "weaknesses": []
+            }
+          },
+          "final_verdict": {
+            "recommendation": "REJECT",
+            "approval_rate": "1/3",
+            "average_risk_score": 5.0,
+            "average_confidence": 0.6
+          },
+          "metadata": {
+            "test_mode": true,
+            "analyst_count": 3,
+            "analysis_timestamp": "2025-12-06T16:03:04.679858"
+          }
+        },
+        "updated_at": "2025-12-06T16:03:04.680032",
+        "test_mode": true
+      }
+    },
+    "created_at": "2025-12-06T16:03:04.689319",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafysimc6gqxxeuqxvbwwq6mrsizkz7gqhegydqa54cp3vxnyda7khucfdq",
+    "title": "Investment Memo: AIWorkflow",
+    "summary": "AIWorkflow is a seed-stage YC S23 batch company operating in the Enterprise AI sector, focusing on AI-powered workflow automation for enterprises. The company, having raised $2M in a seed round, is seeking $3M in funding at a valuation of $15M to accelerate product development and sales expansion. AIWorkflow has a monthly recurring revenue of $150K and has attained a growth rate of 30% with 50 customers.",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "AIWorkflow",
+      "sector": "Enterprise AI",
+      "stage": "Seed",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 4,
+        "weaknesses": 2,
+        "opportunities": 3,
+        "threats": 3
+      },
+      "_research": {
+        "tag": "research_pipeline_v1",
+        "analysis": {
+          "project": "Investment Memo: AIWorkflow",
+          "project_type": "tech_startup",
+          "timestamp": "2025-12-06T15:58:15.459985",
+          "research_summary": "Research summary for Investment Memo: AIWorkflow. This is a test response.",
+          "raw_research": {
+            "info": "Test data"
+          },
+          "analyses": {
+            "conservative": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "# Project - Conservative Investment Analysis\n\n**Risk Score:** 5.0/10\n**Adjusted Score:** 6.5/10 (with conservative bias)\n**Recommendation:** \u274c REJECT\n\n## Analysis Summary\n\n\n## Final Verdict\nAfter careful consideration, we cannot recommend investing in Project at this time. The project presents several risk factors that exceed our conservative risk tolerance thresholds. The adjusted risk score of 6.5 is above our conservative threshold of 3.0.",
+              "confidence": 0.1,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "moderate": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While there are some concerns, the potential upside may justify the calculated risk for investors with balanced risk tolerance.",
+              "confidence": 0.8,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "aggressive": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": true,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While risks are present, the potential rewards appear to justify the investment for those with higher risk tolerance.",
+              "confidence": 0.9,
+              "strengths": [],
+              "weaknesses": []
+            }
+          },
+          "final_verdict": {
+            "recommendation": "REJECT",
+            "approval_rate": "1/3",
+            "average_risk_score": 5.0,
+            "average_confidence": 0.6
+          },
+          "metadata": {
+            "test_mode": true,
+            "analyst_count": 3,
+            "analysis_timestamp": "2025-12-06T15:58:15.460230"
+          }
+        },
+        "updated_at": "2025-12-06T15:58:15.460348",
+        "test_mode": true
+      }
+    },
+    "created_at": "2025-12-06T15:58:15.464265",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreiexswmbe6vokmhpsdfbtqsgnmg24e5wlgcxzdpa64fugjaflex3cq",
+    "title": "Investment Memo: TrustMRR",
+    "summary": "TrustMRR, a Series A startup, provides a database of verified startup revenues by allowing real startups to prove their revenue publicly. However, key information such as the use of funds and the valuation is not provided. The team's experience and the competitive landscape in the Marketing and SaaS space are important considerations.",
+    "confidence": 40,
+    "metadata": {
+      "startup_name": "TrustMRR",
+      "sector": "Marketing",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      },
+      "_research": {
+        "tag": "research_pipeline_v1",
+        "analysis": {
+          "project": "Investment Memo: TrustMRR",
+          "project_type": "tech_startup",
+          "timestamp": "2025-12-06T15:56:18.042991",
+          "research_summary": "Research summary for Investment Memo: TrustMRR. This is a test response.",
+          "raw_research": {
+            "info": "Test data"
+          },
+          "analyses": {
+            "conservative": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "# Project - Conservative Investment Analysis\n\n**Risk Score:** 5.0/10\n**Adjusted Score:** 6.5/10 (with conservative bias)\n**Recommendation:** \u274c REJECT\n\n## Analysis Summary\n\n\n## Final Verdict\nAfter careful consideration, we cannot recommend investing in Project at this time. The project presents several risk factors that exceed our conservative risk tolerance thresholds. The adjusted risk score of 6.5 is above our conservative threshold of 3.0.",
+              "confidence": 0.1,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "moderate": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While there are some concerns, the potential upside may justify the calculated risk for investors with balanced risk tolerance.",
+              "confidence": 0.8,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "aggressive": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": true,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While risks are present, the potential rewards appear to justify the investment for those with higher risk tolerance.",
+              "confidence": 0.9,
+              "strengths": [],
+              "weaknesses": []
+            }
+          },
+          "final_verdict": {
+            "recommendation": "REJECT",
+            "approval_rate": "1/3",
+            "average_risk_score": 5.0,
+            "average_confidence": 0.6
+          },
+          "metadata": {
+            "test_mode": true,
+            "analyst_count": 3,
+            "analysis_timestamp": "2025-12-06T15:56:18.043447"
+          }
+        },
+        "updated_at": "2025-12-06T15:56:18.043595",
+        "test_mode": true
+      }
+    },
+    "created_at": "2025-12-06T15:56:18.044850",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreido3inej6xapvu25momxcuznynrpdt5xj3lge4b6v5wg33vbzez6y",
+    "title": "Investment Memo: Talo",
+    "summary": "Talo, a SaaS startup in Series A, offers real-time voice translation services across various platforms like video calls, live events, offline presentations, and streaming broadcasts. The startup competes in the SaaS and AI space, with an undisclosed market size and undetermined use of funds. The startup is still in its early stages, with limited information available about the financials and team structure. This lack of transparency poses a risk to the investment.",
+    "confidence": 50,
+    "metadata": {
+      "startup_name": "Talo",
+      "sector": "SaaS",
+      "stage": "Series A",
+      "risk_score": 75,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      },
+      "_research": {
+        "tag": "research_pipeline_v1",
+        "analysis": {
+          "project": "Investment Memo: Talo",
+          "project_type": "tech_startup",
+          "timestamp": "2025-12-06T15:55:45.649744",
+          "research_summary": "Research summary for Investment Memo: Talo. This is a test response.",
+          "raw_research": {
+            "info": "Test data"
+          },
+          "analyses": {
+            "conservative": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "# Project - Conservative Investment Analysis\n\n**Risk Score:** 5.0/10\n**Adjusted Score:** 6.5/10 (with conservative bias)\n**Recommendation:** \u274c REJECT\n\n## Analysis Summary\n\n\n## Final Verdict\nAfter careful consideration, we cannot recommend investing in Project at this time. The project presents several risk factors that exceed our conservative risk tolerance thresholds. The adjusted risk score of 6.5 is above our conservative threshold of 3.0.",
+              "confidence": 0.1,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "moderate": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While there are some concerns, the potential upside may justify the calculated risk for investors with balanced risk tolerance.",
+              "confidence": 0.8,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "aggressive": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": true,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While risks are present, the potential rewards appear to justify the investment for those with higher risk tolerance.",
+              "confidence": 0.9,
+              "strengths": [],
+              "weaknesses": []
+            }
+          },
+          "final_verdict": {
+            "recommendation": "REJECT",
+            "approval_rate": "1/3",
+            "average_risk_score": 5.0,
+            "average_confidence": 0.6
+          },
+          "metadata": {
+            "test_mode": true,
+            "analyst_count": 3,
+            "analysis_timestamp": "2025-12-06T15:55:45.650116"
+          }
+        },
+        "updated_at": "2025-12-06T15:55:45.650250",
+        "test_mode": true
+      }
+    },
+    "created_at": "2025-12-06T15:55:45.651627",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreicyhwtvvgyfjqmfdy5ibhicoivfp53lzhn7wiqumsydhuejmdc6ka",
+    "title": "Investment Memo: Gemini 3",
+    "summary": "Gemini 3 is an early-stage Artificial Intelligence startup currently in its Series A financing round. The firm touts its product as a highly intelligent model capable of bringing any idea to life. The company shows moderate engagement with an engagement score of 902, backed by 866 votes and 18 comments. However, there are certain crucial details missing, such as the ask amount, valuation, use of funds, and specific market size data, which makes the investment opportunity challenging to assess.",
+    "confidence": 40,
+    "metadata": {
+      "startup_name": "Gemini 3",
+      "sector": "Artificial Intelligence",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 4,
+        "opportunities": 3,
+        "threats": 4
+      },
+      "_research": {
+        "tag": "research_pipeline_v1",
+        "analysis": {
+          "project": "Investment Memo: Gemini 3",
+          "project_type": "tech_startup",
+          "timestamp": "2025-12-06T15:55:23.245508",
+          "research_summary": "Research summary for Investment Memo: Gemini 3. This is a test response.",
+          "raw_research": {
+            "info": "Test data"
+          },
+          "analyses": {
+            "conservative": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "# Project - Conservative Investment Analysis\n\n**Risk Score:** 5.0/10\n**Adjusted Score:** 6.5/10 (with conservative bias)\n**Recommendation:** \u274c REJECT\n\n## Analysis Summary\n\n\n## Final Verdict\nAfter careful consideration, we cannot recommend investing in Project at this time. The project presents several risk factors that exceed our conservative risk tolerance thresholds. The adjusted risk score of 6.5 is above our conservative threshold of 3.0.",
+              "confidence": 0.1,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "moderate": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While there are some concerns, the potential upside may justify the calculated risk for investors with balanced risk tolerance.",
+              "confidence": 0.8,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "aggressive": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": true,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While risks are present, the potential rewards appear to justify the investment for those with higher risk tolerance.",
+              "confidence": 0.9,
+              "strengths": [],
+              "weaknesses": []
+            }
+          },
+          "final_verdict": {
+            "recommendation": "REJECT",
+            "approval_rate": "1/3",
+            "average_risk_score": 5.0,
+            "average_confidence": 0.6
+          },
+          "metadata": {
+            "test_mode": true,
+            "analyst_count": 3,
+            "analysis_timestamp": "2025-12-06T15:55:23.245877"
+          }
+        },
+        "updated_at": "2025-12-06T15:55:23.246012",
+        "test_mode": true
+      }
+    },
+    "created_at": "2025-12-06T15:55:23.247544",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreiajlshorro7s6netgbct2dr7tdg2fx46bzmuc2lioefvblzfstjku",
+    "title": "Investment Memo: Welltory",
+    "summary": "Welltory is an iOS-based health and fitness technology that interprets and utilizes data from wearables to manage stress. The startup is at the Series A stage, with a founder-led team. They compete in the Health & Fitness and Productivity space. The team's ask and market size are not specified, but they have good engagement metrics. The product offers data-driven, real-time, personalized stress management solutions without requiring drastic lifestyle changes.",
+    "confidence": 70,
+    "metadata": {
+      "startup_name": "Welltory",
+      "sector": "iOS",
+      "stage": "Series A",
+      "risk_score": 60,
+      "swot_summary": {
+        "strengths": 4,
+        "weaknesses": 3,
+        "opportunities": 4,
+        "threats": 3
+      },
+      "_research": {
+        "tag": "research_pipeline_v1",
+        "analysis": {
+          "project": "Investment Memo: Welltory",
+          "project_type": "tech_startup",
+          "timestamp": "2025-12-06T15:54:49.815608",
+          "research_summary": "Research summary for Investment Memo: Welltory. This is a test response.",
+          "raw_research": {
+            "info": "Test data"
+          },
+          "analyses": {
+            "conservative": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "# Project - Conservative Investment Analysis\n\n**Risk Score:** 5.0/10\n**Adjusted Score:** 6.5/10 (with conservative bias)\n**Recommendation:** \u274c REJECT\n\n## Analysis Summary\n\n\n## Final Verdict\nAfter careful consideration, we cannot recommend investing in Project at this time. The project presents several risk factors that exceed our conservative risk tolerance thresholds. The adjusted risk score of 6.5 is above our conservative threshold of 3.0.",
+              "confidence": 0.1,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "moderate": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While there are some concerns, the potential upside may justify the calculated risk for investors with balanced risk tolerance.",
+              "confidence": 0.8,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "aggressive": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": true,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While risks are present, the potential rewards appear to justify the investment for those with higher risk tolerance.",
+              "confidence": 0.9,
+              "strengths": [],
+              "weaknesses": []
+            }
+          },
+          "final_verdict": {
+            "recommendation": "REJECT",
+            "approval_rate": "1/3",
+            "average_risk_score": 5.0,
+            "average_confidence": 0.6
+          },
+          "metadata": {
+            "test_mode": true,
+            "analyst_count": 3,
+            "analysis_timestamp": "2025-12-06T15:54:49.816042"
+          }
+        },
+        "updated_at": "2025-12-06T15:54:49.816192",
+        "test_mode": true
+      }
+    },
+    "created_at": "2025-12-06T15:54:49.818175",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreiawc4lckz3czwret4ipsihbiaghneat5rkfegqrrdfvlj2c6ea55m",
+    "title": "Investment Memo: Guideflow",
+    "summary": "Guideflow is a Series A startup operating in the sales technology sector. Their product allows businesses to create interactive demos, sandboxes, and live environments for customers to explore. The platform leverages AI and a no-code editor to customize screens and create a personalized, on-brand, and shareable product experience. Although information about the team, financial metrics, and use of funds is limited, the product's high engagement scores on Product Hunt suggest it has gained some tr",
+    "confidence": 50,
+    "metadata": {
+      "startup_name": "Guideflow",
+      "sector": "Sales",
+      "stage": "Series A",
+      "risk_score": 75,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      },
+      "_research": {
+        "tag": "research_pipeline_v1",
+        "analysis": {
+          "project": "Investment Memo: Guideflow",
+          "project_type": "tech_startup",
+          "timestamp": "2025-12-06T15:54:28.267208",
+          "research_summary": "Research summary for Investment Memo: Guideflow. This is a test response.",
+          "raw_research": {
+            "info": "Test data"
+          },
+          "analyses": {
+            "conservative": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "# Project - Conservative Investment Analysis\n\n**Risk Score:** 5.0/10\n**Adjusted Score:** 6.5/10 (with conservative bias)\n**Recommendation:** \u274c REJECT\n\n## Analysis Summary\n\n\n## Final Verdict\nAfter careful consideration, we cannot recommend investing in Project at this time. The project presents several risk factors that exceed our conservative risk tolerance thresholds. The adjusted risk score of 6.5 is above our conservative threshold of 3.0.",
+              "confidence": 0.1,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "moderate": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": false,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While there are some concerns, the potential upside may justify the calculated risk for investors with balanced risk tolerance.",
+              "confidence": 0.8,
+              "strengths": [],
+              "weaknesses": []
+            },
+            "aggressive": {
+              "project_name": "Project",
+              "risk_score": 5.0,
+              "vote": true,
+              "justification": "\n\u26a0\ufe0f Moderate risk. While risks are present, the potential rewards appear to justify the investment for those with higher risk tolerance.",
+              "confidence": 0.9,
+              "strengths": [],
+              "weaknesses": []
+            }
+          },
+          "final_verdict": {
+            "recommendation": "REJECT",
+            "approval_rate": "1/3",
+            "average_risk_score": 5.0,
+            "average_confidence": 0.6
+          },
+          "metadata": {
+            "test_mode": true,
+            "analyst_count": 3,
+            "analysis_timestamp": "2025-12-06T15:54:28.267699"
+          }
+        },
+        "updated_at": "2025-12-06T15:54:28.267867",
+        "test_mode": true
+      }
+    },
+    "created_at": "2025-12-06T15:54:28.274416",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreihdmciveuez37yclt6udmyaixkxuru4z4suqo3gugest5v6d2pmze",
+    "title": "Investment Memo: TrustMRR",
+    "summary": "TrustMRR, a Series A stage startup in the Marketing and SaaS sector, provides a unique platform for verified startup revenues. They have a high engagement score and a significant number of votes and comments, indicating a strong early-market interest in their product. However, the lack of specificity in use of funds and the absence of a specified ask amount or valuation makes it difficult to assess their financial needs and potential return on investment.",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "TrustMRR",
+      "sector": "Marketing",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:54:04.988221",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreie3vrnsfsag44vhdh7abvmhq4uhpuoebplirfchfedemeheeqy25e",
+    "title": "Investment Memo: Talo",
+    "summary": "Talo is a SaaS-based startup operating in the AI-driven real-time voice translation space. Their offering is broad and applicable to a variety of platforms including video calls, live events, presentations, and streaming broadcasts. The company is currently at the Series A stage and is seeking funding, although the amount and valuation are unspecified. The team, headed by an anonymous founder, has managed to generate a significant engagement score of 1278, indicative of their product's interest ",
+    "confidence": 65,
+    "metadata": {
+      "startup_name": "Talo",
+      "sector": "SaaS",
+      "stage": "Series A",
+      "risk_score": 60,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:53:37.788074",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreiffod5njjuqtdtgsanhutpoz7wjqy4t4ylrjyogmwfjcdz73wi54q",
+    "title": "Investment Memo: Gemini 3",
+    "summary": "Gemini 3 is an early-stage Artificial Intelligence (AI) startup that aims to develop intelligent models to help bring ideas to life. They are currently at the Series A stage but have not specified their fund-raising goals or the intended use of funds. The team has a founder with undisclosed credentials. While the company has a significant engagement score, the lack of information on market size, team background, and financial details pose some risks for potential investors.",
+    "confidence": 50,
+    "metadata": {
+      "startup_name": "Gemini 3",
+      "sector": "Artificial Intelligence",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 2,
+        "weaknesses": 3,
+        "opportunities": 2,
+        "threats": 2
+      }
+    },
+    "created_at": "2025-12-06T15:53:14.130298",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreic3qa6kvm7upmmtmsqpswqtjkgqwabqfotoykwfzxfowesd3zwvca",
+    "title": "Investment Memo: Welltory",
+    "summary": "Welltory is a Series A stage startup operating in the iOS, Health & Fitness, and Productivity sector. The company's unique value proposition lies in its ability to analyze over 100 biomarkers to provide stress management solutions personalized to the user's body data. While the data on market size is unavailable, the company is competing in a rapidly growing digital health sector. The founder's name and expertise are undisclosed, and the company has not specified the amount it is seeking to rais",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "Welltory",
+      "sector": "iOS",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 4,
+        "weaknesses": 3,
+        "opportunities": 4,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:52:52.923684",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafysimzllh2zathxy7qzecntyttl7dbkgzz5pxdmh25zn3abbrkommr7oq",
+    "title": "Investment Memo: Guideflow",
+    "summary": "Guideflow is an early-stage startup in the Sales sector currently seeking Series A funding. Guideflow provides a unique solution that transforms products into interactive demos, sandboxes, and live environments that potential buyers can explore instantly. Their software captures screens and allows customization with AI or a no-code editor. The team, led by the founder, has managed to build a product that has garnered significant engagement, as evidenced by the number of votes and comments on Pro",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "Guideflow",
+      "sector": "Sales",
+      "stage": "Series A",
+      "risk_score": 75,
+      "swot_summary": {
+        "strengths": 4,
+        "weaknesses": 3,
+        "opportunities": 4,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:52:30.093010",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreianrblgen63gp7ja3ppzaf5gnl4s6wt5cvqjvmqld7t3qksz3rsa4",
+    "title": "Investment Memo: TrustMRR",
+    "summary": "TrustMRR is a Series A marketing startup that provides a database of verified startup revenues. They operate in the competitive Marketing and SaaS space. Their platform allows users to browse Stripe-verified MRR and revenue from real startups, serving as a transparency tool for startups to prove their revenue publicly. The team, led by a single founder, has managed to generate significant engagement with 784 votes and 65 comments. However, they have not specified the ask amount and valuation, an",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "TrustMRR",
+      "sector": "Marketing",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:33:43.385777",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreigo76cjxor5nn75cp22sy2ecsmbzlide7ddjo4xcre37nvprrqdwa",
+    "title": "Investment Memo: Talo",
+    "summary": "Talo is a Series A SaaS startup offering real-time voice translation across various platforms. The product can be utilized either through bots, a desktop app, or via API integration. The company presents a unique solution to language barriers in today's globalized world, particularly in the realm of digital communication. However, key information such as the team's experience, financial metrics, valuation, and the use of funds is missing, which raises concerns.",
+    "confidence": 50,
+    "metadata": {
+      "startup_name": "Talo",
+      "sector": "SaaS",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 2,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:33:04.946598",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreifdwv52r2azhgolb454rw6vodalhffg2euamrmix65mjsdpvc2evm",
+    "title": "Investment Memo: Gemini 3",
+    "summary": "Gemini 3 is an early-stage startup in the Artificial Intelligence sector, currently at the Series A stage. The company's product, as described, is a highly intelligent model that enables users to bring any idea to life. However, several key details about the company's operations, including the exact use of funds, the market size, and their financial ask, are not specified. The startup has a high engagement score of 902, indicating a substantial interest from the community. The team appears to be",
+    "confidence": 50,
+    "metadata": {
+      "startup_name": "Gemini 3",
+      "sector": "Artificial Intelligence",
+      "stage": "Series A",
+      "risk_score": 80,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:32:42.273729",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreiedalqlckdifmfyjosrnb77ijrwjiktslpatdsjtnryvwpykssfty",
+    "title": "Investment Memo: Welltory",
+    "summary": "Welltory is an iOS-based app that uses wearable technology data to help users understand and manage their stress levels. The app tracks over 100 biomarkers to identify stress triggers, suggest interventions, and monitor progress. While it is currently competing in the iOS, Health & Fitness, and Productivity sectors, detailed market size data is unavailable. The team and founder's credentials are unclear, and the use of funds is unspecified, making it difficult to determine the growth potential o",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "Welltory",
+      "sector": "iOS",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 4,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:32:19.227237",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreibvurpn2inw3vfqwnicqh3myuqkuhqpcbmokykfuiyiunhpfc7hxm",
+    "title": "Investment Memo: Guideflow",
+    "summary": "Guideflow is a Series A stage startup operating in the Sales sector, offering a platform that transforms a product into interactive demos with the help of AI and a no-code editor. The startup's team only lists a founder, with no other key personnel mentioned. The metrics provided indicate a high level of engagement, however the ask, market size, and use of funds are unspecified. The startup operates in a competitive Sales, Marketing, and Artificial Intelligence space.",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "Guideflow",
+      "sector": "Sales",
+      "stage": "Series A",
+      "risk_score": 75,
+      "swot_summary": {
+        "strengths": 4,
+        "weaknesses": 3,
+        "opportunities": 4,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:31:53.725004",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreiezs2pna6v4ss4cmyc56vsi7r6rzip6pi72grkte5atwakvpjyooe",
+    "title": "Investment Memo: TrustMRR",
+    "summary": "TrustMRR is a Series A Marketing startup with a unique product offering - a database of verified startup revenues. The startup provides users with access to Stripe-verified Monthly Recurring Revenue (MRR) and revenue metrics from real startups. Despite the uniqueness of its product, the startup's market size and competition are not well defined, and the use of funds is unspecified. The startup's engagement score is relatively high, indicating a fair level of user interaction.",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "TrustMRR",
+      "sector": "Marketing",
+      "stage": "Series A",
+      "risk_score": 65,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:29:58.862482",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreifioytzcabbontsibkurzmuglm4dpoh3utyvwbg4l3jsy3ri7pas4",
+    "title": "Investment Memo: Talo",
+    "summary": "Talo, a Series A SaaS startup, offers real-time voice translation across various channels including video calls, live events, and offline presentations. The product is positioned to overcome language barriers in global communication, a significant challenge in the modern world. However, the lack of specified use of funds, valuation, and market size data present some concerns.",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "Talo",
+      "sector": "SaaS",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:29:26.980343",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreihxfbrfovjzlkyjcudoxx7ucxee6f6drmko77ggkxhflqnlovr67i",
+    "title": "Investment Memo: Gemini 3",
+    "summary": "Gemini 3 is an early-stage Artificial Intelligence startup currently at Series A stage. The team, led by the founder, is developing a model with the potential to bring any idea to life. Engagement metrics from the Product Hunt platform indicate reasonable interest, but critical details such as financial ask and market size remain undisclosed. The startup operates in a fiercely competitive AI space, requiring further scrutiny.",
+    "confidence": 40,
+    "metadata": {
+      "startup_name": "Gemini 3",
+      "sector": "Artificial Intelligence",
+      "stage": "Series A",
+      "risk_score": 75,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:29:08.471993",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreibjrolo6drairb5tp3s5wgobubys2x2ul2km5bxuhtgjneghh3whe",
+    "title": "Investment Memo: Welltory",
+    "summary": "Welltory is a Series A stage startup operating in the iOS, Health & Fitness, and Productivity space. Its unique proposition is the analysis of 100+ biomarkers to provide actionable insights on stress management. Although the team and market specifics are not well detailed, the product concept is innovative and there's evidence of high user engagement. However, the lack of clarity on the use of funds and valuation, as well as unknown market size, presents challenges.",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "Welltory",
+      "sector": "iOS",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:28:37.296764",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreibpnwb3yb6bxjtescpjsreewjxtm6gwnr2nowpzenujmlbjqu3fze",
+    "title": "Investment Memo: Guideflow",
+    "summary": "Guideflow presents an investment opportunity in the Sales sector, currently at its Series A stage. The startup offers a unique product that enables businesses to create interactive demos, sandboxes, and live environments for their products. With a considerable amount of engagement based on the votes and comments, there is a potential for significant growth within this space.",
+    "confidence": 70,
+    "metadata": {
+      "startup_name": "Guideflow",
+      "sector": "Sales",
+      "stage": "Series A",
+      "risk_score": 60,
+      "swot_summary": {
+        "strengths": 4,
+        "weaknesses": 3,
+        "opportunities": 4,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:28:18.146204",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreiatmy5asqwzzrejeemrfmuu5qa5lehdcsbcmghxrsvjbxveiaplyy",
+    "title": "Investment Memo: TrustMRR",
+    "summary": "TrustMRR is a promising early-stage startup in the Marketing sector, offering a unique database of verified startup revenues. Despite being in its early stages, the company has already garnered considerable engagement. However, key information such as the amount and valuation of the ask, as well as the use of funds, are not specified. The market size is also not available, adding some uncertainty to the potential profitability of the venture.",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "TrustMRR",
+      "sector": "Marketing",
+      "stage": "Series A",
+      "risk_score": 75,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:27:44.248652",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreia22fw5vyst4ykermil2rqmhrqeqwlvc2bwk2zs67z2zcaodmqyai",
+    "title": "Investment Memo: Talo",
+    "summary": "Talo is a Series A SaaS startup offering real-time voice translation across video calls, live events, offline presentations, and streaming broadcasts via both standalone applications and API integration. The product is competitive within the SaaS and AI industry. However, the lack of detailed financial information and the unspecified use of funds pose a risk for potential investors.",
+    "confidence": 50,
+    "metadata": {
+      "startup_name": "Talo",
+      "sector": "SaaS",
+      "stage": "Series A",
+      "risk_score": 75,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:27:22.560759",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreieouzrbmgdnuufcmdw7ox2tbt3hxhdcnkrz3llmst3neo56cab5re",
+    "title": "Investment Memo: Gemini 3",
+    "summary": "Gemini 3 is an early-stage startup in the Artificial Intelligence (AI) space. The team is led by an unnamed founder and is currently at the Series A stage. Despite an impressive engagement score on Product Hunt, key information such as the amount of funding sought, the valuation, and the use of funds is not specified. Furthermore, the size of the market they are targeting is not available, making it difficult to evaluate the full potential of this opportunity. The startup is competing in the AI ",
+    "confidence": 50,
+    "metadata": {
+      "startup_name": "Gemini 3",
+      "sector": "Artificial Intelligence",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:27:00.335856",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreigrgzzkblfrpu3n65ee3i37vn2myv2lfbclhgqdbsif4liktltfoi",
+    "title": "Investment Memo: Welltory",
+    "summary": "Welltory is an iOS-based health and fitness startup currently at the Series A stage. The company focuses on stress management by analyzing 100+ biomarkers to provide actionable insights to users. The company operates in the competitive health and fitness sector. Despite the lack of specified use of funds or valuation, the company's engagement score and number of votes on Product Hunt suggest a high level of user interest.",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "Welltory",
+      "sector": "iOS",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 4,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:26:41.324924",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreidivuxppuk4ua6dh543ji2swfl72j5sgjzyopleojvqf5zpjkvsom",
+    "title": "Investment Memo: Guideflow",
+    "summary": "Guideflow, a Series A startup in the Sales sector, offers a unique product that turns pre-existing products into interactive demos and live environments. With strong engagement metrics and a product that addresses a distinct market need, Guideflow presents a high-potential investment opportunity. However, the lack of clarity on the use of funds, valuation, and market size could be potential areas of concern.",
+    "confidence": 65,
+    "metadata": {
+      "startup_name": "Guideflow",
+      "sector": "Sales",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 4,
+        "weaknesses": 4,
+        "opportunities": 3,
+        "threats": 2
+      }
+    },
+    "created_at": "2025-12-06T15:26:22.675325",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreib3avaotyfn3ib7tmjdkki7j6hnbik5dilyvn6uuxliyq4psfn6rm",
+    "title": "Investment Memo: TrustMRR",
+    "summary": "TrustMRR is a Series A stage startup operating in the Marketing sector, offering a unique service by providing a database of verified startup revenues. Despite the lack of clear financial ask and use of funds, the company appears to have a moderate level of engagement based on its metrics. The company is competing in the SaaS space, with no clear information on market size.",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "TrustMRR",
+      "sector": "Marketing",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:26:02.006343",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreignmdx4xzcwm37iumf7d7kld5wlv2n5vzul5s2ejw5pjffts2l4sq",
+    "title": "Investment Memo: Talo",
+    "summary": "Talo, a Series A stage startup, offers a unique SaaS platform that provides real-time voice translation across various mediums like video calls, live events, offline presentations and streaming broadcasts. The team, led by a single founder, has generated a significant engagement score of 1278 on Product Hunt. The startup operates in the competitive SaaS and Artificial Intelligence space, but market size data is not available. The use of funds and specific valuation are unspecified.",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "Talo",
+      "sector": "SaaS",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:25:27.657364",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreibt4jtfshtaectwrag46zgziwyvkpgtki4n424jxxgawom4vsfcku",
+    "title": "Investment Memo: Gemini 3",
+    "summary": "Gemini 3 is a Series A artificial intelligence (AI) startup with a product offering that 'brings any idea to life'. The team composition, as presented, is sparse with only the founder mentioned. Engagement metrics from Product Hunt are impressive, however, the lack of ask amount, valuation, and specific use of funds raises certain concerns. The market size is not available, but they are competing in the AI space, which is known for its competitiveness and high growth potential.",
+    "confidence": 50,
+    "metadata": {
+      "startup_name": "Gemini 3",
+      "sector": "Artificial Intelligence",
+      "stage": "Series A",
+      "risk_score": 75,
+      "swot_summary": {
+        "strengths": 2,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:25:07.387935",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreib3s4clmvuem4flugannstu46ov26vaos6674gxxje3ukwgswrw34",
+    "title": "Investment Memo: Welltory",
+    "summary": "Welltory, a Series A stage startup operating in the iOS, Health & Fitness and Productivity sector, offers a unique software solution that analyzes over 100 biomarkers to provide users with personalized stress management strategies. Although the market size is not explicitly stated, the health and fitness sector is one of the fastest-growing in the app market. The team, while only the founder is mentioned, has been able to generate significant engagement as evidenced by the metrics provided.",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "Welltory",
+      "sector": "iOS",
+      "stage": "Series A",
+      "risk_score": 75,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:24:30.378483",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreifemp7jpjmwbkehj4m7lx2nmc2ffzmvkzc2amevzv7bmqhuu4tm7i",
+    "title": "Investment Memo: Guideflow",
+    "summary": "Guideflow, a Series A startup in the sales sector, offers an innovative solution for creating interactive product demos and live environments without the need for engineering or waiting time. Their solution is powered by AI and a no-code editor, making the process efficient and easy to use. The team is led by a single founder and has shown significant engagement metrics. However, their financial ask and use of funds are not specified, and market size data is not available.",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "Guideflow",
+      "sector": "Sales",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:24:08.054462",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreifjirapbwf5afwy4po43dffuqeqyrrx4olbptyjbilru2yscyjyb4",
+    "title": "Investment Memo: TrustMRR",
+    "summary": "TrustMRR is a Marketing tech startup providing a database of verified startup revenues. They are currently at the Series A stage, showcasing strong engagement metrics, but have not specified their funding ask or intended use of funds. The primary offering is a platform to browse Stripe-verified MRR and revenue from real startups, enabling companies to prove their revenue publicly. This unique approach has potential in the Marketing and SaaS industry, but faces considerable competition.",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "TrustMRR",
+      "sector": "Marketing",
+      "stage": "Series A",
+      "risk_score": 65,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 2
+      }
+    },
+    "created_at": "2025-12-06T15:23:38.160906",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafysimeltl7wulccyvebv7g4mgmax3wlm6l3i75yv66tn4wn7ofs3tktnq",
+    "title": "Investment Memo: Talo",
+    "summary": "Talo is a Series A stage, SaaS startup offering real-time voice translation services across various platforms including video calls, live events, offline presentations, and streaming broadcasts. Although market size data is not readily available, the SaaS and AI space is generally known to be a large and growing market. The startup has not provided specific details regarding the requested funds or their intended use.",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "Talo",
+      "sector": "SaaS",
+      "stage": "Series A",
+      "risk_score": 75,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 2,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:23:13.874920",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreid2rwo3jyfiaovv5fooh7jm5t6ln6yvbwy5krcqythi7vmz7ynfbe",
+    "title": "Investment Memo: Gemini 3",
+    "summary": "Gemini 3, a Series A startup in the Artificial Intelligence (AI) sector, offers a cutting-edge model for bringing ideas to life. The team is led by a founder whose details are undisclosed. Their engagement score on Product Hunt is impressive, but the lack of information surrounding the use of funds, market size, and specific competition raises concerns. A comprehensive analysis is required to ascertain the potential for investment.",
+    "confidence": 40,
+    "metadata": {
+      "startup_name": "Gemini 3",
+      "sector": "Artificial Intelligence",
+      "stage": "Series A",
+      "risk_score": 80,
+      "swot_summary": {
+        "strengths": 2,
+        "weaknesses": 3,
+        "opportunities": 2,
+        "threats": 2
+      }
+    },
+    "created_at": "2025-12-06T15:22:55.957201",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreigqwoxzm2qlp6hltph2sxfp2kyw4wpwwrapvl5inbszm433oc52ba",
+    "title": "Investment Memo: Welltory",
+    "summary": "Welltory operates in the iOS, Health & Fitness, and Productivity space, offering a unique approach to stress management by analyzing biomarkers. The product is a good fit for the current market trend, where consumers are increasingly conscious about their health and wellbeing. However, the company operates in a highly competitive market and the lack of financial data and specifics on fund usage is a concern.",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "Welltory",
+      "sector": "iOS",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 4,
+        "weaknesses": 3,
+        "opportunities": 4,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:22:33.215888",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreicgm3ry2yij5ow6ddel7zmwhg6diqmu7miwu6s3ujziakwma33kzu",
+    "title": "Investment Memo: Guideflow",
+    "summary": "Guideflow, a Series A startup operating in the Sales sector, provides a unique solution for creating interactive product demos and sandboxes. Its platform leverages AI and a no-code editor to customize experiences with no engineering or waiting time. Although the team and market size information is limited, the company has shown significant engagement with over 1,100 votes and 600 comments. The use of funds is unspecified, and the company's valuation is unknown.",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "Guideflow",
+      "sector": "Sales",
+      "stage": "Series A",
+      "risk_score": 75,
+      "swot_summary": {
+        "strengths": 4,
+        "weaknesses": 4,
+        "opportunities": 4,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:22:01.415499",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreibfhr7cx4p6idgmoflylpbtqr5tn7pknsdpzq3txeu7qqb2r6behm",
+    "title": "Investment Memo: TrustMRR",
+    "summary": "TrustMRR operates in the marketing and SaaS space, offering a database of verified startup revenues. The platform offers Stripe-verified MRR and revenue from real startups, allowing companies to prove their revenue publicly. While the ask amount and valuation are not specified, the company seeks funding for unspecified uses. TrustMRR has a high engagement score and a competitive position, but lacks detailed market size data, financial details, and clarity on the use of funds.",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "TrustMRR",
+      "sector": "Marketing",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:21:15.033380",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreicjfnk5mn5sugnkcx4nx3h4i5yrstenrba7ugpu4abaexn4bt2kmy",
+    "title": "Investment Memo: Talo",
+    "summary": "Talo, a Series A SaaS startup, offers a unique technology for real-time voice translation across various platforms such as video calls, live events, and streaming broadcasts. Despite lack of data on market size, the product has shown promising engagement metrics on Product Hunt. However, the startup's ask, including the amount and valuation, is not specified. The founder's team size and experience also remains unknown.",
+    "confidence": 50,
+    "metadata": {
+      "startup_name": "Talo",
+      "sector": "SaaS",
+      "stage": "Series A",
+      "risk_score": 70,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:20:53.109535",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreidhlyc5cs5x3a7to7l7w5wyt2hxskwtm6e5p4gxorppvggt3r4uqi",
+    "title": "Investment Memo: Gemini 3",
+    "summary": "Gemini 3 is an early-stage startup in the Artificial Intelligence sector, currently at Series A stage. The company is centered around a product that brings ideas to life, however, data regarding their market size, financial ask and use of funds are unavailable, making it challenging to ascertain the scope of their operations or potential for growth. The startup appears to have a good level of engagement, as indicated by the number of votes and comments on Product Hunt.",
+    "confidence": 55,
+    "metadata": {
+      "startup_name": "Gemini 3",
+      "sector": "Artificial Intelligence",
+      "stage": "Series A",
+      "risk_score": 65,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:20:34.951315",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreido3p575z3bizlfwfoo4q7ygqrpffksdebosodwrxtoa5uax6hih4",
+    "title": "Investment Memo: Welltory",
+    "summary": "Welltory is an iOS application operating in the Health & Fitness, and Productivity space, offering a unique solution to stress management through the analysis of biomarkers. The application provides users with personalized, actionable steps to reduce stress, without the need for drastic lifestyle changes. Although the team's composition and experience are not fully disclosed, their product has generated significant engagement, as indicated by the metrics provided. However, further information on",
+    "confidence": 60,
+    "metadata": {
+      "startup_name": "Welltory",
+      "sector": "iOS",
+      "stage": "Series A",
+      "risk_score": 75,
+      "swot_summary": {
+        "strengths": 3,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:20:02.725973",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  },
+  {
+    "cid": "bafkreifii2pppbjsydvu54rlktiqdr5rytb3nzauvmqmjahx4phxyti6me",
+    "title": "Investment Memo: Guideflow",
+    "summary": "Guideflow, a Series A startup in the Sales sector, offers an innovative solution for creating interactive demos and personalized product experiences. With a high engagement score and significant interest from the community, it shows promise in a competitive but expansive market. However, the lack of complete financial information and the unspecified use of funds raise some concerns regarding the financial planning and transparency of the company.",
+    "confidence": 70,
+    "metadata": {
+      "startup_name": "Guideflow",
+      "sector": "Sales",
+      "stage": "Series A",
+      "risk_score": 60,
+      "swot_summary": {
+        "strengths": 4,
+        "weaknesses": 3,
+        "opportunities": 3,
+        "threats": 3
+      }
+    },
+    "created_at": "2025-12-06T15:19:38.573794",
+    "status": "active",
+    "yes_votes": 0,
+    "no_votes": 0
+  }
+]
