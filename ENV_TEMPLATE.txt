@@ -99,6 +99,23 @@ STARTUP_SEARCH_SOURCES=demo,producthunt
 # LOG_FILE=app.log
 
 # ===========================================
+# Optional: Email Configuration
+# ===========================================
+# SMTP server for sending notification emails
+# SMTP_SERVER=smtp.gmail.com
+# SMTP_PORT=587
+# SMTP_USERNAME=your-email@gmail.com
+# SMTP_PASSWORD=your-app-password
+# EMAIL_FROM=your-email@gmail.com
+# EMAIL_FROM_NAME=SmartBoard Team
+#
+# Note: For Gmail, you'll need to use an App Password:
+# 1. Go to Google Account settings
+# 2. Enable 2-Step Verification
+# 3. Generate an App Password for "Mail"
+# 4. Use that App Password as SMTP_PASSWORD
+
+# ===========================================
 # Optional: Security Configuration
 # ===========================================
 # JWT_SECRET=your-secret-key-for-jwt

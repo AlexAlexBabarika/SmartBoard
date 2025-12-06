@@ -45,3 +45,16 @@ class Vote(Base):
     def __repr__(self):
         return f"<Vote(id={self.id}, proposal_id={self.proposal_id}, vote={self.vote})>"
 
+
+class User(Base):
+    """User model for storing wallet addresses and optional email addresses."""
+    __tablename__ = "users"
+    
+    wallet_address = Column(String, primary_key=True, index=True)
+    email = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<User(wallet_address='{self.wallet_address}', email='{self.email}')>"
+

@@ -7,6 +7,7 @@ import os
 import asyncio
 from typing import List, Optional
 from pathlib import Path
+from datetime import datetime
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -27,8 +28,9 @@ else:
     logger.debug("Loaded .env from current directory")
 
 from .db import get_db, init_db
-from .models import Proposal as DBProposal, Vote as DBVote
+from .models import Proposal as DBProposal, Vote as DBVote, User as DBUser
 from .neo_client import NeoClient
+from .email_service import send_congratulations_email as send_email
 from .startup_discovery import (
     discover_startups,
     discover_and_process_startups,
@@ -180,6 +182,11 @@ class DiscoverStartupsRequest(BaseModel):
     sources: Optional[List[str]] = None
     limit_per_source: int = 5
     auto_process: bool = True
+
+
+class CreateUserRequest(BaseModel):
+    wallet_address: str
+    email: Optional[str] = None
 
 
 # API Endpoints
@@ -689,6 +696,78 @@ async def finalize_nested(proposal_id: int, db: Session = Depends(get_db)):
         logger.error(f"Error finalizing proposal: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Failed to finalize proposal: {str(e)}")
+
+
+@app.post("/users")
+async def create_or_update_user(request: CreateUserRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    """
+    Create or update a user with wallet address and optional email.
+    Sends a congratulations email if email is provided and is new or updated.
+    """
+    logger.info(f"Creating/updating user: wallet={request.wallet_address}, email={request.email}")
+    
+    try:
+        # Check if user already exists
+        existing_user = db.query(DBUser).filter(
+            DBUser.wallet_address == request.wallet_address
+        ).first()
+        
+        email_was_added = False
+        
+        if existing_user:
+            # Update existing user
+            if request.email and request.email != existing_user.email:
+                email_was_added = True
+                existing_user.email = request.email
+                existing_user.updated_at = datetime.utcnow()
+                db.commit()
+                db.refresh(existing_user)
+                logger.info(f"Updated user email: {request.wallet_address}")
+        else:
+            # Create new user
+            new_user = DBUser(
+                wallet_address=request.wallet_address,
+                email=request.email
+            )
+            db.add(new_user)
+            db.commit()
+            db.refresh(new_user)
+            if request.email:
+                email_was_added = True
+            logger.info(f"Created new user: {request.wallet_address}")
+        
+        # Send email in background if email was added
+        if email_was_added and request.email:
+            background_tasks.add_task(
+                send_congratulations_email_task,
+                request.wallet_address,
+                request.email
+            )
+        
+        return {
+            "success": True,
+            "wallet_address": request.wallet_address,
+            "email": request.email,
+            "email_sent": email_was_added and request.email is not None
+        }
+    
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating/updating user: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create/update user: {str(e)}")
+
+
+def send_congratulations_email_task(wallet_address: str, email: str):
+    """
+    Send a congratulations email to the user when they add their email.
+    This function is called as a background task.
+    """
+    try:
+        send_email(wallet_address, email)
+        logger.info(f"Congratulations email sent to {email} for wallet {wallet_address}")
+    except Exception as e:
+        logger.error(f"Failed to send congratulations email to {email}: {str(e)}")
 
 
 if __name__ == "__main__":

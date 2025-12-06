@@ -15,10 +15,21 @@
   }
 
   // Wallet connection
-  function connectWallet(event) {
+  async function connectWallet(event) {
     const address = event.detail?.address || null;
+    const email = event.detail?.email || null;
     if (address) {
       walletStore.connect(address);
+      // If email is provided, send it to the backend
+      if (email) {
+        try {
+          const { userAPI } = await import("./lib/api.js");
+          await userAPI.createOrUpdateUser(address, email);
+        } catch (error) {
+          console.error("Failed to save email:", error);
+          // Don't block wallet connection if email save fails
+        }
+      }
     }
   }
 

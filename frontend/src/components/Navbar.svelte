@@ -55,9 +55,9 @@
 
   function handleAddressSubmit() {
     if (addressInput.trim()) {
-      dispatch("connectWallet", { 
+      dispatch("connectWallet", {
         address: addressInput.trim(),
-        email: emailInput.trim() || null
+        email: emailInput.trim() || null,
       });
       showAddressPrompt = false;
       addressInput = "";
@@ -258,11 +258,38 @@
         placeholder="N..."
         bind:value={addressInput}
         on:keydown={(e) => {
-          if (e.key === "Enter") handleAddressSubmit();
+          if (e.key === "Enter" && addressInput.trim()) {
+            e.preventDefault();
+            if (emailInputElement) {
+              emailInputElement.focus();
+            } else {
+              handleAddressSubmit();
+            }
+          }
           if (e.key === "Escape") handleAddressCancel();
         }}
         autofocus
       />
+      <div class="mb-4">
+        <label for="email-input" class="block text-sm text-pe-muted mb-2">
+          Optional: add your email (solely for notifications)
+        </label>
+        <input
+          id="email-input"
+          type="email"
+          bind:this={emailInputElement}
+          class="search-input-pe w-full"
+          placeholder="your.email@example.com"
+          bind:value={emailInput}
+          on:keydown={(e) => {
+            if (e.key === "Enter" && addressInput.trim()) {
+              e.preventDefault();
+              handleAddressSubmit();
+            }
+            if (e.key === "Escape") handleAddressCancel();
+          }}
+        />
+      </div>
       <div class="flex gap-3 justify-end">
         <button
           class="px-4 py-2 rounded-pe text-pe-muted hover:text-pe-text hover:bg-pe-card transition-colors focus-ring"
