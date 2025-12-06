@@ -119,11 +119,12 @@ function createFiltersStore() {
   const initialState = {
     searchQuery: '',
     category: 'all',
+    status: 'all',
     confidenceMin: 0,
     confidenceMax: 100,
-    sizes: ['M'], // Default selected size
-    tags: ['Air-Purifying', 'Luxury'], // Default selected tags
-    sortBy: 'default', // 'default', 'confidence-asc', 'confidence-desc', 'name'
+    sizes: [], // Default selected size
+    tags: [], // Default selected tags
+    sortBy: 'default', // 'default', 'confidence-asc', 'confidence-desc', 'name', 'status'
   };
 
   const { subscribe, set, update } = writable(initialState);
@@ -132,6 +133,7 @@ function createFiltersStore() {
     subscribe,
     setSearch: (query) => update(state => ({ ...state, searchQuery: query })),
     setCategory: (category) => update(state => ({ ...state, category })),
+    setStatus: (status) => update(state => ({ ...state, status })),
     setConfidenceRange: (min, max) => update(state => ({ ...state, confidenceMin: min, confidenceMax: max })),
     toggleSize: (size) => update(state => {
       const sizes = state.sizes.includes(size)
@@ -148,6 +150,8 @@ function createFiltersStore() {
     removeFilter: (type, value) => update(state => {
       if (type === 'confidence') {
         return { ...state, confidenceMin: 0, confidenceMax: 100 };
+      } else if (type === 'status') {
+        return { ...state, status: 'all' };
       } else if (type === 'size') {
         return { ...state, sizes: state.sizes.filter(s => s !== value) };
       } else if (type === 'tag') {
@@ -258,6 +262,14 @@ export const activeFilters = derived(filtersStore, ($filters) => {
       type: 'confidence', 
       label: `Confidence: ${$filters.confidenceMin} - ${$filters.confidenceMax}`,
       value: 'confidence'
+    });
+  }
+  
+  if ($filters.status && $filters.status !== 'all') {
+    filters.push({ 
+      type: 'status', 
+      label: `Status: ${$filters.status}`,
+      value: 'status'
     });
   }
   

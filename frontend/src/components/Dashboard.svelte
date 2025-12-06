@@ -4,9 +4,7 @@
   import { 
     filtersStore, 
     favoritesStore, 
-    filteredProducts, 
     activeFilters,
-    categories,
     availableTags,
     confidenceHistogram,
     sampleProducts
@@ -23,11 +21,151 @@
   // Subscribe to stores
   $: filters = $filtersStore;
   $: favorites = $favoritesStore;
-  $: products = $filteredProducts;
   $: activeFiltersList = $activeFilters;
+  
+  // Filter proposals based on filters
+  $: products = (() => {
+    let filtered = [...proposals];
+    
+    // Apply search filter
+    if (filters.searchQuery) {
+      const query = filters.searchQuery.toLowerCase();
+      filtered = filtered.filter(p => 
+        (p.title || '').toLowerCase().includes(query) || 
+        (p.subtitle || p.summary || '').toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply category filter
+    if (filters.category !== 'all') {
+      filtered = filtered.filter(p => {
+        // Check if proposal has category field, or use metadata
+        const proposalCategory = p.category || p.metadata?.category || p.metadata?.sector || '';
+        return proposalCategory === filters.category;
+      });
+    }
+    
+    // Apply status filter
+    if (filters.status && filters.status !== 'all') {
+      filtered = filtered.filter(p => {
+        const status = p.status || 'active';
+        return status === filters.status;
+      });
+    }
+    
+    // Apply confidence range filter
+    filtered = filtered.filter(p => {
+      const confidence = p.confidence !== undefined && p.confidence !== null ? p.confidence : 0;
+      return confidence >= filters.confidenceMin && confidence <= filters.confidenceMax;
+    });
+    
+    // Apply size filter (if any sizes selected)
+    if (filters.sizes.length > 0) {
+      filtered = filtered.filter(p => {
+        const proposalSize = p.size || p.metadata?.size || '';
+        return filters.sizes.includes(proposalSize);
+      });
+    }
+    
+    // Apply tag filter (if any tags selected, product must have at least one matching tag)
+    if (filters.tags.length > 0) {
+      filtered = filtered.filter(p => {
+        const proposalTags = p.tags || p.metadata?.tags || [];
+        return Array.isArray(proposalTags) && proposalTags.some(tag => filters.tags.includes(tag));
+      });
+    }
+    
+    // Apply sorting
+    switch (filters.sortBy) {
+      case 'confidence-asc':
+        filtered.sort((a, b) => (a.confidence || 0) - (b.confidence || 0));
+        break;
+      case 'confidence-desc':
+        filtered.sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
+        break;
+      case 'name':
+        filtered.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+        break;
+      case 'status':
+        filtered.sort((a, b) => {
+          const statusA = (a.status || 'active').toLowerCase();
+          const statusB = (b.status || 'active').toLowerCase();
+          const statusOrder = { 'active': 1, 'approved': 2, 'rejected': 3 };
+          return (statusOrder[statusA] || 99) - (statusOrder[statusB] || 99);
+        });
+        break;
+      default:
+        // Keep original order
+        break;
+    }
+    
+    // Add favorite status from favorites store
+    return filtered.map(p => ({
+      ...p,
+      favorite: favorites.has(p.id),
+      // Ensure required fields exist for display
+      image: getProposalImage(p),
+      subtitle: p.subtitle || p.summary || '',
+      confidence: p.confidence || 0,
+      status: p.status || 'active'
+    }));
+  })();
   
   // Get max histogram count for scaling bars
   $: maxHistogramCount = Math.max(...confidenceHistogram.map(h => h.count));
+  
+  // Helper function to generate unique image based on proposal ID
+  function getProposalImage(proposal) {
+    if (proposal.image) return proposal.image;
+    
+    // Generate a unique image based on proposal ID using Unsplash source
+    const imageSeeds = [
+      '1485827404703-89b55fcc595e', // AI/Tech
+      '1532187863486-abf9dbad1b69', // Biotech/Healthcare
+      '1473341304170-971dccb5ac1e', // Energy
+      '1633356122102-3fe601e05bd2', // Web3/Virtual
+      '1574323347407-f5e1ad6d020b', // Agriculture
+      '1563013544-824ae1b704d3', // Finance
+      '1551288049-bebda4e38f71', // Business
+      '1551836022-deb1028da3cc', // Innovation
+      '1550439062-609e153127ce', // Startup
+      '1460925895917-afdab827c52f' // Technology
+    ];
+    
+    const seedIndex = (proposal.id || 0) % imageSeeds.length;
+    return `https://images.unsplash.com/photo-${imageSeeds[seedIndex]}?w=400&h=400&fit=crop`;
+  }
+  
+  // Calculate category counts dynamically from proposals
+  $: categoryCounts = (() => {
+    const counts = {
+      'all': proposals.length,
+      'AI & ML': 0,
+      'Healthcare': 0,
+      'CleanTech': 0,
+      'Web3': 0,
+      'FinTech': 0
+    };
+    
+    proposals.forEach(p => {
+      const category = p.category || p.metadata?.category || p.metadata?.sector || '';
+      if (category && counts.hasOwnProperty(category)) {
+        counts[category]++;
+      }
+    });
+    
+    return counts;
+  })();
+  
+  // Available categories with dynamic counts
+  $: availableCategories = [
+    { name: 'All Proposals', count: categoryCounts.all, key: 'all' },
+    { name: 'AI & ML', count: categoryCounts['AI & ML'], key: 'AI & ML' },
+    { name: 'Healthcare', count: categoryCounts['Healthcare'], key: 'Healthcare' },
+    { name: 'CleanTech', count: categoryCounts['CleanTech'], key: 'CleanTech' },
+    { name: 'Web3', count: categoryCounts['Web3'], key: 'Web3' },
+    { name: 'FinTech', count: categoryCounts['FinTech'], key: 'FinTech' }
+  ];
   
   onMount(async () => {
     await loadProposals();
@@ -135,7 +273,7 @@
         <div>
           <h3 class="sidebar-label">Categories</h3>
           <div class="space-y-1">
-            {#each categories as category}
+            {#each availableCategories as category}
               <button 
                 class="category-item w-full"
                 class:active={filters.category === category.key}
@@ -146,6 +284,49 @@
                 <span class="text-pe-text-dim text-xs">{category.count}</span>
               </button>
             {/each}
+          </div>
+        </div>
+        
+        <!-- Status Filter -->
+        <div>
+          <h3 class="sidebar-label">Status</h3>
+          <div class="space-y-1">
+            <button 
+              class="category-item w-full"
+              class:active={!filters.status || filters.status === 'all'}
+              on:click={() => filtersStore.setStatus('all')}
+              aria-pressed={!filters.status || filters.status === 'all'}
+            >
+              <span>All Status</span>
+              <span class="text-pe-text-dim text-xs">{proposals.length}</span>
+            </button>
+            <button 
+              class="category-item w-full"
+              class:active={filters.status === 'active'}
+              on:click={() => filtersStore.setStatus('active')}
+              aria-pressed={filters.status === 'active'}
+            >
+              <span>Active</span>
+              <span class="text-pe-text-dim text-xs">{proposals.filter(p => (p.status || 'active') === 'active').length}</span>
+            </button>
+            <button 
+              class="category-item w-full"
+              class:active={filters.status === 'approved'}
+              on:click={() => filtersStore.setStatus('approved')}
+              aria-pressed={filters.status === 'approved'}
+            >
+              <span>Approved</span>
+              <span class="text-pe-text-dim text-xs">{proposals.filter(p => (p.status || 'active') === 'approved').length}</span>
+            </button>
+            <button 
+              class="category-item w-full"
+              class:active={filters.status === 'rejected'}
+              on:click={() => filtersStore.setStatus('rejected')}
+              aria-pressed={filters.status === 'rejected'}
+            >
+              <span>Rejected</span>
+              <span class="text-pe-text-dim text-xs">{proposals.filter(p => (p.status || 'active') === 'rejected').length}</span>
+            </button>
           </div>
         </div>
         
@@ -294,7 +475,7 @@
               class="flex items-center gap-2 text-sm text-pe-muted hover:text-pe-text transition-colors"
               on:click={() => filtersStore.setSortBy(filters.sortBy === 'confidence-asc' ? 'confidence-desc' : 'confidence-asc')}
             >
-              Default Sorting
+              Confidence
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
               </svg>
@@ -303,7 +484,16 @@
               class="flex items-center gap-2 text-sm text-pe-muted hover:text-pe-text transition-colors"
               on:click={() => filtersStore.setSortBy('name')}
             >
-              Categories
+              Name
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              </svg>
+            </button>
+            <button 
+              class="flex items-center gap-2 text-sm text-pe-muted hover:text-pe-text transition-colors"
+              on:click={() => filtersStore.setSortBy('status')}
+            >
+              Status
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
               </svg>
