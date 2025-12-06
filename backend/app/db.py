@@ -10,19 +10,11 @@ from .models import Base
 # Database URL from environment or default to SQLite
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./proposals.db")
 
-# Create engine with connection pooling and timeout settings
-connect_args = {}
-if "sqlite" in DATABASE_URL:
-    connect_args = {
-        "check_same_thread": False,
-        "timeout": 10.0  # 10 second timeout for SQLite operations
-    }
-
+# Create engine
 engine = create_engine(
     DATABASE_URL,
-    connect_args=connect_args,
-    pool_pre_ping=True,  # Verify connections before using
-    pool_recycle=3600  # Recycle connections after 1 hour
+    connect_args={
+        "check_same_thread": False} if "sqlite" in DATABASE_URL else {}
 )
 
 # Create session factory

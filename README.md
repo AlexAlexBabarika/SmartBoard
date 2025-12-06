@@ -117,7 +117,11 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-**Note:** PDF generation uses reportlab (pure Python, no system dependencies required).
+**Note for macOS users:** If you want PDF generation to work (optional for demo mode), install WeasyPrint system dependencies:
+
+```bash
+brew install cairo pango gdk-pixbuf libffi
+```
 
 Without these, the agent will use HTML instead of PDF (works fine for demo mode).
 

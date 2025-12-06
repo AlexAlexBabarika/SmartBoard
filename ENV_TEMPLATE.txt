@@ -62,31 +62,6 @@ SPOON_CLI_CONFIG=./spoon_agent/spoon.config.json
 DEMO_MODE=true
 
 # ===========================================
-# Automatic Startup Discovery
-# ===========================================
-# Enable automatic startup discovery and processing
-# Set to 'true' to automatically search for startups periodically
-AUTO_SEARCH_STARTUPS=false
-
-# How often to search for startups (in hours)
-# Default: 24 (once per day)
-SEARCH_INTERVAL_HOURS=24
-
-# Sources to search for startups (comma-separated)
-# Options: demo, producthunt, crunchbase, ycombinator
-# Default: demo,producthunt
-# Note: Set DEMO_MODE=false and provide API keys for real data
-STARTUP_SEARCH_SOURCES=demo,producthunt
-
-# Optional: Product Hunt API token (for better rate limits)
-# Get from: https://api.producthunt.com/v2/oauth/applications
-# PRODUCT_HUNT_API_TOKEN=your-product-hunt-token-here
-
-# Optional: Crunchbase API key (for real Crunchbase integration)
-# Get from: https://data.crunchbase.com/
-# CRUNCHBASE_API_KEY=your-crunchbase-api-key-here
-
-# ===========================================
 # Optional: Anthropic Configuration
 # ===========================================
 # If using Anthropic instead of OpenAI

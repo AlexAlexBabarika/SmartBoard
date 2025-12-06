@@ -14,65 +14,14 @@
   });
   
   async function loadProposals() {
-    // Safety timeout: ensure loading never stays true forever (reduced to 8 seconds)
-    const safetyTimeout = setTimeout(() => {
-      if (loading) {
-        console.warn('Loading timeout - forcing loading state to false');
-        loading = false;
-        if (!error) {
-          error = 'Backend is not responding. Please check:\n\n1. Is the backend running?\n   uvicorn backend.app.main:app --reload\n\n2. Check backend logs for errors\n\n3. Try refreshing the page';
-        }
-      }
-    }, 8000); // 8 second safety timeout
-    
     try {
       loading = true;
       error = null;
-      
-      // Try to load proposals directly
-      const fetchedProposals = await proposalAPI.getProposals();
-      
-      // Clear safety timeout on success
-      clearTimeout(safetyTimeout);
-      
-      // Ensure we have an array
-      if (Array.isArray(fetchedProposals)) {
-        proposals = fetchedProposals;
-        console.log(`✅ Loaded ${proposals.length} proposals from backend`);
-      } else if (fetchedProposals) {
-        // If it's not an array but exists, wrap it
-        proposals = [fetchedProposals];
-        console.warn('⚠️ Backend returned non-array, wrapped it');
-      } else {
-        proposals = [];
-        console.warn('⚠️ Backend returned null/undefined, using empty array');
-      }
+      proposals = await proposalAPI.getProposals();
     } catch (e) {
+      error = 'Failed to load proposals. Make sure the backend is running.';
       console.error('Error loading proposals:', e);
-      
-      // Clear safety timeout on error
-      clearTimeout(safetyTimeout);
-      
-      // Set error message based on error type
-      if (e.message) {
-        if (e.message.includes('Cannot connect') || e.message.includes('connection failed') || e.message.includes('fetch')) {
-          error = 'Cannot connect to backend.\n\nMake sure the backend is running:\n\n  cd backend\n  uvicorn app.main:app --reload\n\nThe backend should be available at: http://localhost:8000';
-        } else if (e.message.includes('timed out') || e.message.includes('timeout')) {
-          error = 'Backend request timed out.\n\nThe backend may be:\n• Not running\n• Slow to respond\n• Hanging on a request\n\nCheck the backend terminal for errors.';
-        } else if (e.message.includes('Backend returned error')) {
-          error = `Backend error: ${e.message}\n\nCheck the backend logs for details.`;
-        } else {
-          error = `Failed to load proposals:\n\n${e.message}`;
-        }
-      } else {
-        error = 'Failed to load proposals. Check browser console (F12) for details.';
-      }
-      
-      // Ensure proposals is an empty array on error
-      proposals = [];
     } finally {
-      // Always reset loading state
-      clearTimeout(safetyTimeout);
       loading = false;
     }
   }
@@ -99,13 +48,6 @@
   $: filteredProposals = filter === 'all' 
     ? proposals 
     : proposals.filter(p => p.status === filter);
-  
-  // Debug: Log when proposals change
-  $: {
-    if (proposals.length > 0) {
-      console.log(`📊 Proposals updated: ${proposals.length} total, ${filteredProposals.length} after filter (${filter})`);
-    }
-  }
 </script>
 
 <div class="space-y-6">
@@ -161,10 +103,8 @@
   
   <!-- Loading state -->
   {#if loading}
-    <div class="flex flex-col justify-center items-center py-20">
+    <div class="flex justify-center items-center py-20">
       <span class="loading loading-spinner loading-lg"></span>
-      <p class="text-gray-500 mt-4">Loading proposals...</p>
-      <p class="text-sm text-gray-400 mt-2">If this takes too long, check that the backend is running</p>
     </div>
   {:else if error}
     <!-- Error state -->
@@ -172,17 +112,7 @@
       <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
-      <div class="flex-1">
-        <div class="whitespace-pre-line">{error}</div>
-        <div class="mt-2">
-          <button class="btn btn-sm btn-outline" on:click={loadProposals}>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Retry
-          </button>
-        </div>
-      </div>
+      <span>{error}</span>
     </div>
   {:else if filteredProposals.length === 0}
     <!-- Empty state -->
