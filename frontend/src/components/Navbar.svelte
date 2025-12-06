@@ -11,7 +11,9 @@
   let mobileMenuOpen = false;
   let showAddressPrompt = false;
   let addressInput = "";
+  let emailInput = "";
   let addressInputElement;
+  let emailInputElement;
 
   // Lock body scroll when modal is open
   $: if (typeof document !== "undefined") {
@@ -41,6 +43,7 @@
       // Show prompt for wallet address
       showAddressPrompt = true;
       addressInput = "";
+      emailInput = "";
       // Focus the input after the modal is shown
       setTimeout(() => {
         if (addressInputElement) {
@@ -52,15 +55,20 @@
 
   function handleAddressSubmit() {
     if (addressInput.trim()) {
-      dispatch("connectWallet", { address: addressInput.trim() });
+      dispatch("connectWallet", { 
+        address: addressInput.trim(),
+        email: emailInput.trim() || null
+      });
       showAddressPrompt = false;
       addressInput = "";
+      emailInput = "";
     }
   }
 
   function handleAddressCancel() {
     showAddressPrompt = false;
     addressInput = "";
+    emailInput = "";
   }
 
   function truncateAddress(address) {
@@ -94,12 +102,9 @@
           aria-label="Go to landing page"
         >
           <!-- SmartBoard Logo -->
-          <img
-            src="/logo.svg"
-            alt="SmartBoard Logo"
-            class="w-11 h-11"
-          />
-          <span class="font-display font-semibold text-lg text-pe-text">SmartBoard
+          <img src="/logo.svg" alt="SmartBoard Logo" class="w-11 h-11" />
+          <span class="font-display font-semibold text-lg text-pe-text"
+            >SmartBoard
           </span>
         </button>
       </div>
@@ -119,6 +124,13 @@
           on:click={() => handleNavigation("qa")}
         >
           Q&A
+        </button>
+        <button
+          class="nav-link"
+          class:active={currentView === "create-team"}
+          on:click={() => handleNavigation("create-team")}
+        >
+          Create Team
         </button>
       </div>
 
@@ -205,6 +217,13 @@
           on:click={() => handleNavigation("qa")}
         >
           Q&A
+        </button>
+        <button
+          class="mobile-nav-link"
+          class:active={currentView === "create-team"}
+          on:click={() => handleNavigation("create-team")}
+        >
+          Create Team
         </button>
       </div>
     </div>
