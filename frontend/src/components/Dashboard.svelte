@@ -668,23 +668,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Tags -->
-        <div>
-          <h3 class="sidebar-label">Tags</h3>
-          <div class="flex flex-wrap gap-2">
-            {#each availableTags as tag}
-              <button
-                class="chip-pe"
-                class:active={filters.tags.includes(tag)}
-                on:click={() => filtersStore.toggleTag(tag)}
-                aria-pressed={filters.tags.includes(tag)}
-              >
-                {tag}
-              </button>
-            {/each}
-          </div>
-        </div>
       </div>
     </aside>
 
