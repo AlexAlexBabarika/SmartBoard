@@ -1,5 +1,11 @@
 fly.toml
-.git/
-__pycache__/
+.git
 .envrc
-.venv/
+.venv
+__pycache__
+frontend/node_modules
+backend/proposals.db
+proposals.db
+*.log
+*.pyc
+.pytest_cache

@@ -23,6 +23,7 @@ from dotenv import load_dotenv
 from .db import get_db, init_db, SessionLocal
 from .models import Proposal as DBProposal, Vote as DBVote, User as DBUser, Organization as DBOrganization
 from .neo_client import NeoClient
+from fastapi.staticfiles import StaticFiles
 from .startup_discovery import (
     discover_startups,
     discover_and_process_startups,
@@ -1703,6 +1704,15 @@ def send_proposal_outcome_emails(
             db.close()
     except Exception as e:
         logger.error(f"Failed to send proposal outcome emails: {str(e)}")
+
+# Serve built frontend after all API routes are registered so it does not shadow API paths.
+frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "dist"
+if frontend_dist.exists():
+    app.mount(
+        "/",
+        StaticFiles(directory=frontend_dist, html=True),
+        name="frontend"
+    )
 
 
 if __name__ == "__main__":
