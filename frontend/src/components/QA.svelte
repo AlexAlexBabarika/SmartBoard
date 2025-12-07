@@ -45,14 +45,6 @@ Vote & Execute – Community members vote. If the required threshold is met, the
       a: "The Confidence Score (0–100) represents how confident the AI (or the analyst) is in the proposal's risk-return profile. Higher scores indicate stronger conviction that the opportunity fits the DAO's criteria. This score is used for sorting and filtering proposals on the Dashboard."
     },
     {
-      q: "What is the Metadata (Optional JSON) field for?",
-      a: `The Metadata field lets you attach structured information to a proposal in JSON format, e.g.
-
-{"sector": "tech", "stage": "series-a", "risk_score": 50}.
-
-This makes it easy to filter, group, and analyze proposals by sector, stage, geography, or any other custom tags.`
-    },
-    {
       q: "How does voting on proposals work?",
       a: "Once a proposal is active, DAO members can cast a Yes or No vote. The vote progress bars on each card show the share of Yes vs No votes and the total vote count. When more than 50% of votes are Yes (or another configured threshold), the smart contract marks the proposal as approved."
     },

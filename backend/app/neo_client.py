@@ -228,8 +228,11 @@ class NeoClient:
                     return False
 
             return False
+        except requests.exceptions.RequestException as exc:
+            logger.error(f"Network error checking on-chain vote status: {exc}")
+            raise
         except Exception as exc:
-            logger.error(f"Error checking on-chain vote status: {exc}")
+            logger.error(f"Error checking on-chain vote status: {exc}", exc_info=True)
             raise
     
     # Simulation methods

@@ -162,7 +162,7 @@
             AI Investment Scout DAO
           </p>
           <p class="text-pe-muted text-xs mt-0.5">
-            Decentralized investment evaluation powered by AI
+            investment evaluation powered by AI & Web3
           </p>
         </div>
         <div class="flex items-center gap-4">
@@ -189,7 +189,7 @@
         </div>
       </div>
       <p class="text-center text-pe-text-dim text-xs mt-3">
-        Built for Hackat Hackathon 2025
+        Built for Encode Agentic Hackathon 2025
       </p>
     </div>
   </footer>

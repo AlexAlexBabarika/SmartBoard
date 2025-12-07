@@ -5,7 +5,7 @@ Main application entry point with all API endpoints.
 
 # Load environment variables FIRST, before importing modules that read env vars
 import io
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -247,7 +247,35 @@ class SubmitMemoRequest(BaseModel):
     summary: str
     cid: str
     confidence: int  # 0-100
-    metadata: Optional[dict] = {}
+    metadata: dict = Field(default_factory=dict)
+
+    @field_validator('title')
+    @classmethod
+    def validate_title(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Title cannot be empty')
+        return v.strip()
+
+    @field_validator('summary')
+    @classmethod
+    def validate_summary(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Summary cannot be empty')
+        return v.strip()
+
+    @field_validator('cid')
+    @classmethod
+    def validate_cid(cls, v):
+        if not v or not v.strip():
+            raise ValueError('IPFS CID cannot be empty')
+        return v.strip()
+
+    @field_validator('confidence')
+    @classmethod
+    def validate_confidence(cls, v):
+        if not isinstance(v, int) or v < 0 or v > 100:
+            raise ValueError('Confidence must be an integer between 0 and 100')
+        return v
 
 
 class ProposalResponse(BaseModel):
@@ -261,7 +289,7 @@ class ProposalResponse(BaseModel):
     no_votes: int
     created_at: str
     deadline: Optional[int] = None
-    metadata: Optional[dict] = {}
+    metadata: dict = Field(default_factory=dict)
 
     class Config:
         from_attributes = True
@@ -271,6 +299,27 @@ class VoteRequest(BaseModel):
     proposal_id: int
     voter_address: str
     vote: int  # 1 for yes, 0 for no
+
+    @field_validator('voter_address')
+    @classmethod
+    def validate_voter_address(cls, v):
+        if not v or not v.strip():
+            raise ValueError('voter_address cannot be empty')
+        return v.strip()
+
+    @field_validator('vote')
+    @classmethod
+    def validate_vote(cls, v):
+        if v not in [0, 1]:
+            raise ValueError('vote must be 0 (no) or 1 (yes)')
+        return v
+
+    @field_validator('proposal_id')
+    @classmethod
+    def validate_proposal_id(cls, v):
+        if not isinstance(v, int) or v <= 0:
+            raise ValueError('proposal_id must be a positive integer')
+        return v
 
 
 class VoteRequestNoId(BaseModel):
@@ -296,6 +345,13 @@ class VoteRequestNoId(BaseModel):
 class FinalizeRequest(BaseModel):
     proposal_id: int
 
+    @field_validator('proposal_id')
+    @classmethod
+    def validate_proposal_id(cls, v):
+        if not isinstance(v, int) or v <= 0:
+            raise ValueError('proposal_id must be a positive integer')
+        return v
+
 
 class DiscoverStartupsRequest(BaseModel):
     sources: Optional[List[str]] = None
@@ -315,9 +371,15 @@ class SyncFromCidsRequest(BaseModel):
 
 
 class VoiceInteractionRequest(BaseModel):
-    proposal_id: int
     # Text transcribed from speech (using Web Speech API on frontend)
     transcribed_text: str
+
+    @field_validator('transcribed_text')
+    @classmethod
+    def validate_transcribed_text(cls, v):
+        if not v or not v.strip():
+            raise ValueError('transcribed_text cannot be empty')
+        return v.strip()
 
 
 class CreateUserRequest(BaseModel):
@@ -328,8 +390,40 @@ class CreateUserRequest(BaseModel):
 class CreateOrganizationRequest(BaseModel):
     name: str
     sector: Optional[str] = None
-    team_members: List[str]  # List of wallet addresses
+    team_members: List[str] = Field(default_factory=list)  # List of wallet addresses
     creator_wallet: str
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError('Organization name cannot be empty')
+        return v.strip()
+
+    @field_validator('creator_wallet')
+    @classmethod
+    def validate_creator_wallet(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError('creator_wallet cannot be empty')
+        v_clean = v.strip()
+        if not v_clean.startswith('N'):
+            raise ValueError(f'Invalid NEO wallet address: {v_clean} (must start with \"N\")')
+        return v_clean
+
+    @field_validator('team_members')
+    @classmethod
+    def validate_team_members(cls, v: List[str]) -> List[str]:
+        if not v:
+            raise ValueError('team_members must contain at least one wallet address')
+        cleaned = []
+        for addr in v:
+            if not addr or not addr.strip():
+                raise ValueError('team_members cannot contain empty addresses')
+            addr_clean = addr.strip()
+            if not addr_clean.startswith('N'):
+                raise ValueError(f'Invalid NEO wallet address: {addr_clean} (must start with \"N\")')
+            cleaned.append(addr_clean)
+        return cleaned
 
 
 # API Endpoints
@@ -638,7 +732,7 @@ async def submit_memo(request: SubmitMemoRequest, db: Session = Depends(get_db))
                 no_votes=existing.no_votes,
                 created_at=existing.created_at.isoformat(),
                 deadline=existing.deadline,
-                metadata=existing.proposal_metadata
+                metadata=existing.proposal_metadata or {}
             )
 
         # Calculate deadline (7 days from now, in block timestamp)
@@ -689,7 +783,7 @@ async def submit_memo(request: SubmitMemoRequest, db: Session = Depends(get_db))
             no_votes=db_proposal.no_votes,
             created_at=db_proposal.created_at.isoformat(),
             deadline=db_proposal.deadline,
-            metadata=db_proposal.proposal_metadata
+            metadata=db_proposal.proposal_metadata or {}
         )
 
     except Exception as e:
@@ -774,7 +868,7 @@ async def get_proposals(db: Session = Depends(get_db)):
                 no_votes=p.no_votes,
                 created_at=p.created_at.isoformat(),
                 deadline=p.deadline,
-                metadata=p.proposal_metadata
+            metadata=p.proposal_metadata or {}
             )
             for p in proposals
         ]
@@ -809,7 +903,7 @@ async def get_proposal(proposal_id: int, db: Session = Depends(get_db)):
         no_votes=proposal.no_votes,
         created_at=proposal.created_at.isoformat(),
         deadline=proposal.deadline,
-        metadata=proposal.proposal_metadata
+        metadata=proposal.proposal_metadata or {}
     )
 
 
@@ -1374,7 +1468,7 @@ async def voice_interaction(proposal_id: int, request: VoiceInteractionRequest, 
     logger.info(
         f"[Voice] Voice interaction request received - Proposal ID: {proposal_id}")
     logger.debug(
-        f"[Voice] Request body: proposal_id={request.proposal_id}, transcribed_text='{request.transcribed_text[:50]}...'")
+        f"[Voice] Request body: transcribed_text='{request.transcribed_text[:50]}...'")
 
     try:
         # Get proposal
@@ -1386,12 +1480,6 @@ async def voice_interaction(proposal_id: int, request: VoiceInteractionRequest, 
             raise HTTPException(status_code=404, detail="Proposal not found")
 
         logger.info(f"[Voice] Found proposal: {proposal.title}")
-
-        # Validate proposal_id matches
-        if request.proposal_id != proposal_id:
-            logger.error(
-                f"[Voice] Proposal ID mismatch: path={proposal_id}, body={request.proposal_id}")
-            raise HTTPException(status_code=400, detail="Proposal ID mismatch")
 
         transcribed_text = request.transcribed_text.strip()
         logger.info(f"[Voice] Transcribed text: '{transcribed_text}'")
@@ -1615,28 +1703,78 @@ async def create_organization(
     )
 
     try:
+        # Normalize and deduplicate team members (preserve order)
+        normalized_members: List[str] = []
+        seen = set()
+        # ensure creator is part of the org
+        candidate_members = [*request.team_members, request.creator_wallet]
+        for member in candidate_members:
+            member_clean = member.strip()
+            if not member_clean:
+                continue
+            if not member_clean.startswith("N"):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid NEO wallet address: {member_clean} (must start with 'N')"
+                )
+            if member_clean not in seen:
+                seen.add(member_clean)
+                normalized_members.append(member_clean)
+
+        if not normalized_members:
+            raise HTTPException(
+                status_code=400,
+                detail="At least one valid team member wallet address is required"
+            )
+
+        # Check for duplicate organization name to avoid accidental collision
+        existing = db.query(DBOrganization).filter(
+            DBOrganization.name == request.name.strip()
+        ).first()
+        if existing:
+            logger.warning(f"Organization with name '{request.name}' already exists")
+            return {
+                "success": True,
+                "id": existing.id,
+                "name": existing.name,
+                "sector": existing.sector,
+                "ipfs_cid": existing.ipfs_cid,
+                "creator_wallet": existing.creator_wallet,
+                "team_members": existing.team_members or [],
+                "member_count": len(existing.team_members or []),
+                "created_at": existing.created_at.isoformat(),
+            }
+
         # Prepare organization data for IPFS
+        sector_value = request.sector.strip() if request.sector and request.sector.strip() else None
         org_data = {
-            "name": request.name,
-            "sector": request.sector,
-            "creator_wallet": request.creator_wallet,
-            "team_members": request.team_members,
-            "member_count": len(request.team_members),
+            "name": request.name.strip(),
+            "sector": sector_value,
+            "creator_wallet": request.creator_wallet.strip(),
+            "team_members": normalized_members,
+            "member_count": len(normalized_members),
             "created_at": datetime.utcnow().isoformat(),
         }
 
-        # Upload to Storacha/IPFS
+        # Upload to Storacha/IPFS (fail closed to avoid dangling DB records without storage)
         logger.info("Uploading organization data to Storacha/IPFS...")
+        safe_filename = request.name.replace(' ', '_').replace('/', '_').replace('\\', '_')
         ipfs_cid = upload_json_to_ipfs(
-            org_data, f"organization_{request.name.replace(' ', '_')}.json")
+            org_data, f"organization_{safe_filename}.json"
+        )
+        if not ipfs_cid:
+            raise HTTPException(
+                status_code=502,
+                detail="Failed to persist organization to IPFS/Storacha"
+            )
 
         # Save to database
         organization = DBOrganization(
-            name=request.name,
-            sector=request.sector,
+            name=request.name.strip(),
+            sector=sector_value,
             ipfs_cid=ipfs_cid,
-            creator_wallet=request.creator_wallet,
-            team_members=request.team_members,
+            creator_wallet=request.creator_wallet.strip(),
+            team_members=normalized_members,  # Store as JSON array
         )
 
         db.add(organization)
@@ -1654,14 +1792,23 @@ async def create_organization(
             "sector": organization.sector,
             "ipfs_cid": organization.ipfs_cid,
             "creator_wallet": organization.creator_wallet,
-            "team_members": organization.team_members,
-            "member_count": len(organization.team_members),
+            "team_members": organization.team_members or [],
+            "member_count": len(organization.team_members or []),
             "created_at": organization.created_at.isoformat(),
         }
 
+    except ValueError as e:
+        db.rollback()
+        logger.error(f"Validation error creating organization: {str(e)}")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid request: {str(e)}"
+        )
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
-        logger.error(f"Error creating organization: {str(e)}")
+        logger.error(f"Error creating organization: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Failed to create organization: {str(e)}"
         )
@@ -1669,7 +1816,7 @@ async def create_organization(
 
 @app.get("/organizations")
 async def get_organizations(
-    wallet_address: Optional[str] = None,
+    wallet_address: Optional[str] = Query(None, description="Filter by wallet address"),
     db: Session = Depends(get_db)
 ):
     """
@@ -1677,11 +1824,17 @@ async def get_organizations(
     """
     try:
         if wallet_address:
-            # Get organizations where user is creator or team member
-            organizations = db.query(DBOrganization).filter(
-                (DBOrganization.creator_wallet == wallet_address) |
-                (DBOrganization.team_members.contains([wallet_address]))
-            ).all()
+            # Get all organizations and filter in Python (SQLite JSON support varies)
+            all_orgs = db.query(DBOrganization).all()
+            organizations = []
+            for org in all_orgs:
+                # Check if user is creator
+                if org.creator_wallet == wallet_address:
+                    organizations.append(org)
+                # Check if user is in team_members (JSON array)
+                elif org.team_members and isinstance(org.team_members, list):
+                    if wallet_address in org.team_members:
+                        organizations.append(org)
         else:
             # Get all organizations
             organizations = db.query(DBOrganization).all()
@@ -1693,15 +1846,15 @@ async def get_organizations(
                 "sector": org.sector,
                 "ipfs_cid": org.ipfs_cid,
                 "creator_wallet": org.creator_wallet,
-                "team_members": org.team_members,
-                "member_count": len(org.team_members),
+                "team_members": org.team_members or [],
+                "member_count": len(org.team_members) if org.team_members else 0,
                 "created_at": org.created_at.isoformat(),
             }
             for org in organizations
         ]
 
     except Exception as e:
-        logger.error(f"Error fetching organizations: {str(e)}")
+        logger.error(f"Error fetching organizations: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch organizations: {str(e)}"
         )
