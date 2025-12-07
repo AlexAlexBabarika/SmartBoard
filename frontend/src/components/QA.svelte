@@ -104,7 +104,7 @@ Rejected – The proposal failed to meet the threshold or was voted down.`
           on:click={() => toggleQuestion(index)}
         >
           <span class="font-display font-semibold text-lg text-pe-text pr-4">
-            Q{index + 1}. {question.q}
+            {question.q}
           </span>
           <svg
             class="h-5 w-5 text-pe-muted flex-shrink-0 transition-transform {openQuestion === index ? 'rotate-180' : ''}"
