@@ -26,8 +26,13 @@
   let searching = false;
   let searchStatus = "";
   let searchError = null;
-  const MAX_POLL_ATTEMPTS = 10;
+  let searchJobId = null;
+  let statusPolling = false;
+  let searchStartedAt = null;
+  let lastSelectedSources = [];
+  const MAX_POLL_ATTEMPTS = 60; // ~3 minutes at 3s interval
   const POLL_DELAY_MS = 3000;
+  const STATUS_POLL_DELAY_MS = 3000;
 
   // Subscribe to stores
   $: filters = $filtersStore;
@@ -167,65 +172,59 @@
     ? Math.max(...confidenceHistogram.map((h) => h.count), 1) 
     : 1;
 
-  // Helper function to generate unique image based on proposal ID
+  // Helper function to generate beautiful SVG gradient placeholder
+  function getGradientPlaceholder(proposal) {
+    const seed = proposal.id || Math.random() * 1000;
+    const colors = [
+      ["#667eea", "#764ba2"], // Purple gradient
+      ["#f093fb", "#f5576c"], // Pink gradient
+      ["#4facfe", "#00f2fe"], // Blue gradient
+      ["#43e97b", "#38f9d7"], // Green gradient
+      ["#fa709a", "#fee140"], // Pink-yellow gradient
+      ["#30cfd0", "#330867"], // Teal-purple gradient
+      ["#a8edea", "#fed6e3"], // Mint-pink gradient
+      ["#ff9a9e", "#fecfef"], // Rose gradient
+      ["#ffecd2", "#fcb69f"], // Peach gradient
+      ["#ff8a80", "#ea4c89"], // Coral gradient
+    ];
+    const colorIndex = Math.floor(seed) % colors.length;
+    const [color1, color2] = colors[colorIndex];
+    
+    // Create a beautiful SVG gradient placeholder
+    const svg = `<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="grad-${seed}" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:${color1};stop-opacity:1" />
+          <stop offset="100%" style="stop-color:${color2};stop-opacity:1" />
+        </linearGradient>
+      </defs>
+      <rect width="400" height="400" fill="url(#grad-${seed})" />
+      <circle cx="200" cy="150" r="40" fill="white" opacity="0.3" />
+      <circle cx="250" cy="200" r="30" fill="white" opacity="0.2" />
+      <circle cx="150" cy="250" r="35" fill="white" opacity="0.25" />
+    </svg>`;
+    
+    // Use URI encoding for better compatibility
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  }
+
+  // Helper function to generate beautiful placeholder image based on proposal ID
   function getProposalImage(proposal) {
     if (proposal.image) return proposal.image;
 
-    // Generate a unique image based on proposal ID using Unsplash source
-    const imageSeeds = [
-      "1485827404703-89b55fcc595e", // AI/Tech
-      "1532187863486-abf9dbad1b69", // Biotech/Healthcare
-      "1473341304170-971dccb5ac1e", // Energy
-      "1633356122102-3fe601e05bd2", // Web3/Virtual
-      "1574323347407-f5e1ad6d020b", // Agriculture
-      "1563013544-824ae1b704d3", // Finance
-      "1551288049-bebda4e38f71", // Business
-      "1551836022-deb1028da3cc", // Innovation
-      "1550439062-609e153127ce", // Startup
-      "1460925895917-afdab827c52f", // Technology
-      "1521737852567-6949f3f9f2b5", // Data Analytics
-      "1551434678-e17c5bd9a51b", // Team Collaboration
-      "1552664736-46f2a69b7bef", // Growth Strategy
-      "1556761175-4b46a572b786", // Digital Transformation
-      "1553877522-43269d4ea984", // Research & Development
-      "1556761175-b4136ca6dcd0", // Market Analysis
-      "1461988623082-5e1e3755bcca", // Investment Planning
-      "1507003211169-0a1dd7228f2d", // Corporate Strategy
-      "1551836022-4cfe5f0b7c1e", // Innovation Lab
-      "1556761175-5973dc0f32e7", // Technology Stack
-      "1521737604893-d98cc65f3826", // Cloud Computing
-      "1551434678-8b9415af4a45", // Mobile Technology
-      "1552664736-46f2a69b7bef", // E-commerce
-      "1556761175-4b46a572b786", // SaaS Platform
-      "1553877522-43269d4ea984", // Cybersecurity
-      "1551434678-e17c5bd9a51b", // Blockchain
-      "1552664736-46f2a69b7bef", // IoT Devices
-      "1556761175-4b46a572b786", // Robotics
-      "1553877522-43269d4ea984", // Green Energy
-      "1551434678-e17c5bd9a51b", // Sustainable Tech
-      "1552664736-46f2a69b7bef", // Medical Devices
-      "1556761175-4b46a572b786", // EdTech
-      "1553877522-43269d4ea984", // Real Estate Tech
-      "1551434678-e17c5bd9a51b", // Logistics
-      "1552664736-46f2a69b7bef", // Supply Chain
-      "1556761175-4b46a572b786", // Manufacturing
-      "1553877522-43269d4ea984", // Aerospace
-      "1551434678-e17c5bd9a51b", // Automotive
-      "1552664736-46f2a69b7bef", // Entertainment Tech
-      "1460925895917-afdab827c52f", // Software Development
-      "1551288049-bebda4e38f71", // Consulting
-      "1551836022-deb1028da3cc", // Product Design
-      "1550439062-609e153127ce", // Marketing
-      "1485827404703-89b55fcc595e", // Analytics
-      "1532187863486-abf9dbad1b69", // Healthcare Innovation
-      "1473341304170-971dccb5ac1e", // Renewable Energy
-      "1633356122102-3fe601e05bd2", // Cryptocurrency
-      "1574323347407-f5e1ad6d020b", // AgTech
-      "1563013544-824ae1b704d3", // FinTech Innovation
-    ];
+    // Generate a unique seed based on proposal ID for consistent images
+    const seed = proposal.id || Math.random() * 1000;
+    
+    // Use Picsum Photos for beautiful random images with consistent seeding
+    // This provides high-quality, beautiful placeholder images
+    return `https://picsum.photos/seed/${seed}/400/400`;
+  }
 
-    const seedIndex = (proposal.id || 0) % imageSeeds.length;
-    return `https://images.unsplash.com/photo-${imageSeeds[seedIndex]}?w=400&h=400&fit=crop`;
+  // Handle image load errors by falling back to gradient placeholder
+  function handleImageError(event, proposal) {
+    if (event.target.src && !event.target.src.includes('data:image/svg+xml')) {
+      event.target.src = getGradientPlaceholder(proposal);
+    }
   }
 
   function getStatusBadgeClasses(status) {
@@ -312,8 +311,8 @@
         clearTimeout(safetyTimeout);
 
         if (Array.isArray(fetchedProposals)) {
-          // Use fetched proposals (even if empty - this is valid when database is clean)
-          proposals = fetchedProposals;
+          const filtered = applySearchFilters(fetchedProposals, searching);
+          proposals = filtered;
         } else {
           // Invalid response format
           proposals = [];
@@ -339,6 +338,8 @@
   async function initiateSearch() {
     searchError = null;
     searchStatus = "";
+    searchJobId = null;
+    searchStartedAt = new Date();
     proposals = []; // Clear existing proposals immediately so UI shows empty state
 
     const selectedSources = Array.isArray(searchSources)
@@ -351,6 +352,7 @@
     }
 
     const limit = Math.max(1, Math.min(50, Number(proposalLimit) || 1));
+    lastSelectedSources = [...selectedSources];
 
     searching = true;
     loading = true;
@@ -368,9 +370,15 @@
       }
 
       const response = await proposalAPI.discoverStartups(payload);
+      searchJobId = response?.job_id || null;
       searchStatus =
         response?.message ||
         "Search started. New proposals will appear once ready.";
+
+      // Poll backend job status (non-blocking) if job id is provided
+      if (searchJobId) {
+        pollJobStatus(searchJobId);
+      }
 
       const found = await waitForProposals();
       if (!found) {
@@ -388,8 +396,9 @@
   async function waitForProposals() {
     for (let attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
       const fetched = await proposalAPI.getProposals().catch(() => null);
-      if (Array.isArray(fetched) && fetched.length > 0) {
-        proposals = fetched;
+      const filtered = applySearchFilters(fetched, true);
+      if (Array.isArray(filtered) && filtered.length > 0) {
+        proposals = filtered;
         loading = false;
         return true;
       }
@@ -397,6 +406,55 @@
     }
     loading = false;
     return false;
+  }
+
+  async function pollJobStatus(jobId) {
+    if (!jobId || statusPolling) return;
+    statusPolling = true;
+    try {
+      for (let attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
+        const status = await proposalAPI.getDiscoveryStatus(jobId).catch(() => null);
+        if (status?.message) {
+          searchStatus = status.message;
+        }
+        if (status?.status === "completed") {
+          searchStatus = status.message || "Discovery completed";
+          break;
+        }
+        if (status?.status === "failed") {
+          searchStatus = status.message || "Discovery failed";
+          searchError = status.error || searchError;
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, STATUS_POLL_DELAY_MS));
+      }
+    } finally {
+      statusPolling = false;
+    }
+  }
+
+  function applySearchFilters(fetched, respectSearchWindow = false) {
+    if (!Array.isArray(fetched)) return [];
+    // If not currently searching, just return fetched
+    if (!searching && !respectSearchWindow) return fetched;
+
+    return fetched.filter((p) => {
+      const source = p?.metadata?.source || p?.source;
+      if (lastSelectedSources.length > 0 && source && !lastSelectedSources.includes(source)) {
+        return false;
+      }
+
+      if (respectSearchWindow && searchStartedAt) {
+        const created =
+          Date.parse(p?.created_at) ||
+          Date.parse(p?.metadata?.created_at || p?.metadata?.timestamp || "");
+        if (!Number.isNaN(created) && created < searchStartedAt.getTime() - 2000) {
+          return false;
+        }
+      }
+
+      return true;
+    });
   }
 
   function selectProposal(id) {
@@ -1007,9 +1065,10 @@
                   <img
                     src={product.image}
                     alt={product.title}
-                    class="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                    class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     loading="lazy"
                     style="filter: drop-shadow(0 12px 24px rgba(0,0,0,0.4));"
+                    on:error={(e) => handleImageError(e, product)}
                   />
 
                   <!-- Action Buttons -->

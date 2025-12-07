@@ -16,6 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 import logging
 import asyncio
 import os
+import uuid
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
@@ -81,6 +82,9 @@ executor = ThreadPoolExecutor(
 # Thread pool executor for Storacha sync (separate to avoid blocking)
 storacha_executor = ThreadPoolExecutor(
     max_workers=1, thread_name_prefix="storacha_sync")
+
+# In-memory job status tracking for discovery runs
+job_statuses = {}
 
 # Fetch-time Storacha sync configuration
 STORACHA_SYNC_ON_FETCH = os.getenv(
@@ -296,6 +300,7 @@ class DiscoverStartupsRequest(BaseModel):
     sources: Optional[List[str]] = None
     limit_per_source: int = 5
     auto_process: bool = True
+    additional_fields: Optional[str] = None
 
 
 class SyncFromManifestRequest(BaseModel):
@@ -357,24 +362,60 @@ async def discover_startups_endpoint(
         f"Manual startup discovery triggered: sources={request.sources}, auto_process={request.auto_process}")
 
     if request.auto_process:
+        job_id = str(uuid.uuid4())
+        job_statuses[job_id] = {
+            "status": "running",
+            "message": "Startup discovery and processing started in background",
+            "sources": request.sources or ["demo"],
+            "limit_per_source": request.limit_per_source,
+            "additional_fields": request.additional_fields,
+            "discovered": 0,
+            "processed": 0,
+            "failed": 0,
+            "started_at": datetime.utcnow().isoformat()
+        }
+
+        def status_callback(update: dict):
+            job = job_statuses.get(job_id, {})
+            job.update(update)
+            job_statuses[job_id] = job
+
         # Run in background thread pool to avoid blocking
         async def run_discovery():
             loop = asyncio.get_event_loop()
-            await loop.run_in_executor(
-                executor,
-                lambda: discover_and_process_startups(
-                    sources=request.sources,
-                    limit_per_source=request.limit_per_source,
-                    auto_process=True
+            try:
+                results = await loop.run_in_executor(
+                    executor,
+                    lambda: discover_and_process_startups(
+                        sources=request.sources,
+                        limit_per_source=request.limit_per_source,
+                        additional_fields=request.additional_fields,
+                        auto_process=True,
+                        status_callback=status_callback
+                    )
                 )
-            )
+                status_callback({
+                    "status": "completed",
+                    "message": "Startup discovery and processing completed",
+                    "results": results,
+                    "finished_at": datetime.utcnow().isoformat()
+                })
+            except Exception as e:
+                logger.error(f"Discovery job {job_id} failed: {e}")
+                status_callback({
+                    "status": "failed",
+                    "message": f"Discovery failed: {str(e)}",
+                    "error": str(e),
+                    "finished_at": datetime.utcnow().isoformat()
+                })
 
         background_tasks.add_task(run_discovery)
         return {
             "status": "started",
             "message": "Startup discovery and processing started in background",
             "sources": request.sources or ["demo"],
-            "limit_per_source": request.limit_per_source
+            "limit_per_source": request.limit_per_source,
+            "job_id": job_id
         }
     else:
         # Run synchronously in thread pool (just discovery, no processing)
@@ -400,6 +441,14 @@ async def discovery_status():
         "search_interval_hours": SEARCH_INTERVAL_HOURS,
         "background_task_running": background_task_running
     }
+
+
+@app.get("/discover-startups/{job_id}/status")
+async def discovery_job_status(job_id: str):
+    """Get status for a specific manual discovery job."""
+    if job_id not in job_statuses:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job_statuses[job_id]
 
 
 @app.get("/sync/storacha/status")
