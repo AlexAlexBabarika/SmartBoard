@@ -6,7 +6,6 @@
     favoritesStore,
     activeFilters,
     availableTags,
-    confidenceHistogram,
     sampleProducts,
   } from "../stores/filters.js";
   import FloatingNetwork from "./FloatingNetwork.svelte";
@@ -134,8 +133,39 @@
     }));
   })();
 
+  // Calculate confidence histogram from actual proposals
+  $: confidenceHistogram = (() => {
+    // Create bins for confidence ranges (0-10, 10-20, ..., 90-100)
+    const bins = Array.from({ length: 10 }, (_, i) => ({
+      min: i * 10,
+      max: (i + 1) * 10,
+      count: 0
+    }));
+
+    // Count proposals in each bin
+    proposals.forEach((proposal) => {
+      const confidence = proposal.confidence !== undefined && proposal.confidence !== null 
+        ? proposal.confidence 
+        : 0;
+      
+      // Find the appropriate bin
+      const binIndex = Math.min(
+        Math.floor(confidence / 10),
+        9 // Cap at last bin (90-100)
+      );
+      
+      if (binIndex >= 0 && binIndex < bins.length) {
+        bins[binIndex].count++;
+      }
+    });
+
+    return bins;
+  })();
+
   // Get max histogram count for scaling bars
-  $: maxHistogramCount = Math.max(...confidenceHistogram.map((h) => h.count));
+  $: maxHistogramCount = confidenceHistogram.length > 0 
+    ? Math.max(...confidenceHistogram.map((h) => h.count), 1) 
+    : 1;
 
   // Helper function to generate unique image based on proposal ID
   function getProposalImage(proposal) {
@@ -490,7 +520,7 @@
           <h3 class="sidebar-label">Confidence</h3>
 
           <!-- Histogram Bars -->
-          <div class="flex items-end gap-0.5 h-12 mb-4">
+          <div class="flex items-end gap-0.5 h-12 mb-2">
             {#each confidenceHistogram as bar}
               {@const isInRange =
                 bar.min >= filters.confidenceMin &&
@@ -502,6 +532,15 @@
                 title="{bar.count} items between {bar.min}-{bar.max}%"
               ></div>
             {/each}
+          </div>
+
+          <!-- Confidence Axis -->
+          <div class="flex justify-between text-xs text-pe-text-dim mb-4 px-0.5">
+            <span>0</span>
+            <span>25</span>
+            <span>50</span>
+            <span>75</span>
+            <span>100</span>
           </div>
 
           <!-- Confidence Range Slider -->

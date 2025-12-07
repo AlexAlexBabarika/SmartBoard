@@ -167,9 +167,14 @@
         </div>
         <div class="flex items-center gap-4">
           <a
-            href="https://github.com"
+            href="https://github.com/AlexAlexBabarika/SmartBoard.git"
             class="text-pe-muted hover:text-pe-accent transition-colors text-xs"
             >GitHub</a
+          >
+          <a
+            href="https://elevenlabs.io/"
+            class="text-pe-muted hover:text-pe-accent transition-colors text-xs"
+            >ElevenLabs</a
           >
           <a
             href="https://neo.org"
@@ -177,7 +182,7 @@
             >NEO</a
           >
           <a
-            href="https://spoon.so"
+            href="https://spoonai.io/"
             class="text-pe-muted hover:text-pe-accent transition-colors text-xs"
             >SpoonOS</a
           >
