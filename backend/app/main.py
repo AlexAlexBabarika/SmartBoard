@@ -17,7 +17,7 @@ import logging
 import asyncio
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv
 from .db import get_db, init_db, SessionLocal
@@ -372,7 +372,7 @@ async def discover_startups_endpoint(
             "discovered": 0,
             "processed": 0,
             "failed": 0,
-            "started_at": datetime.utcnow().isoformat()
+            "started_at": datetime.now(timezone.utc).isoformat()
         }
 
         def status_callback(update: dict):
@@ -398,7 +398,7 @@ async def discover_startups_endpoint(
                     "status": "completed",
                     "message": "Startup discovery and processing completed",
                     "results": results,
-                    "finished_at": datetime.utcnow().isoformat()
+                    "finished_at": datetime.now(timezone.utc).isoformat()
                 })
             except Exception as e:
                 logger.error(f"Discovery job {job_id} failed: {e}")
@@ -406,7 +406,7 @@ async def discover_startups_endpoint(
                     "status": "failed",
                     "message": f"Discovery failed: {str(e)}",
                     "error": str(e),
-                    "finished_at": datetime.utcnow().isoformat()
+                    "finished_at": datetime.now(timezone.utc).isoformat()
                 })
 
         background_tasks.add_task(run_discovery)
