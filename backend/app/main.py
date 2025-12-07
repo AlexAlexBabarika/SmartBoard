@@ -16,8 +16,11 @@ from concurrent.futures import ThreadPoolExecutor
 import logging
 import asyncio
 import os
+from datetime import datetime
+from pathlib import Path
+from dotenv import load_dotenv
 from .db import get_db, init_db, SessionLocal
-from .models import Proposal as DBProposal, Vote as DBVote
+from .models import Proposal as DBProposal, Vote as DBVote, User as DBUser, Organization as DBOrganization
 from .neo_client import NeoClient
 from .startup_discovery import (
     discover_startups,
@@ -40,17 +43,15 @@ from .manifest_manager import (
 from .utils import clean_cid, get_current_storacha_space
 from .research_pipeline_adapter import run_research_pipeline
 from .vote_service import process_vote
-from pathlib import Path
-from dotenv import load_dotenv
+from .email_service import send_congratulations_email as send_email, send_proposal_outcome_email
+from .blockchain_listener import BlockchainListener
+from .ipfs_utils import upload_json_to_ipfs
 
 env_path = Path(__file__).parent.parent.parent / '.env'
 if env_path.exists():
     load_dotenv(env_path)
 else:
     load_dotenv()  # Fallback to current directory
-
-# Now import modules that depend on environment variables
-
 
 # Configure logger after imports
 logger = logging.getLogger(__name__)
@@ -59,7 +60,8 @@ if env_path.exists():
 else:
     logger.debug("Loaded .env from current directory")
 
-# new helper for consistent CID comparison
+# Check demo mode
+DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
 
 # Configure logging (if not already configured)
 if not logging.getLogger().handlers:
@@ -211,6 +213,17 @@ async def startup_event():
         except Exception as exc:
             logger.error(f"Failed to start simulated voting agent: {exc}")
 
+    # Start blockchain event listener for email notifications
+    if not DEMO_MODE:
+        logger.info(
+            "Starting blockchain event listener for proposal finalization...")
+        neo_client = get_neo_client()
+        listener = BlockchainListener(neo_client, SessionLocal)
+        asyncio.create_task(listener.start())
+    else:
+        logger.info(
+            "Blockchain listener disabled in DEMO_MODE - email notifications will be triggered via API endpoints")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -299,6 +312,18 @@ class VoiceInteractionRequest(BaseModel):
     proposal_id: int
     # Text transcribed from speech (using Web Speech API on frontend)
     transcribed_text: str
+
+
+class CreateUserRequest(BaseModel):
+    wallet_address: str
+    email: Optional[str] = None
+
+
+class CreateOrganizationRequest(BaseModel):
+    name: str
+    sector: Optional[str] = None
+    team_members: List[str]  # List of wallet addresses
+    creator_wallet: str
 
 
 # API Endpoints
@@ -871,9 +896,11 @@ async def has_voted(proposal_id: int, voter_address: str, db: Session = Depends(
 
 
 @app.post("/finalize")
-async def finalize(request: FinalizeRequest, db: Session = Depends(get_db)):
+async def finalize(request: FinalizeRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Finalize a proposal (close voting and determine outcome).
+    Note: In production mode, email notifications are triggered by blockchain events.
+    In demo mode, emails are sent via background tasks.
     """
     logger.info(f"Finalizing proposal: {request.proposal_id}")
 
@@ -902,6 +929,20 @@ async def finalize(request: FinalizeRequest, db: Session = Depends(get_db)):
         logger.info(
             f"Proposal finalized: ID={request.proposal_id}, status={proposal.status}")
 
+        # In demo mode, send emails via API. In production, blockchain listener handles it
+        if DEMO_MODE:
+            background_tasks.add_task(
+                send_proposal_outcome_emails,
+                proposal.id,
+                proposal.title,
+                proposal.status,
+                proposal.yes_votes,
+                proposal.no_votes
+            )
+        else:
+            logger.info(
+                "Email notifications will be triggered by blockchain event listener")
+
         return {
             "success": True,
             "proposal_id": proposal.id,
@@ -919,9 +960,11 @@ async def finalize(request: FinalizeRequest, db: Session = Depends(get_db)):
 
 
 @app.post("/proposals/{proposal_id}/finalize")
-async def finalize_nested(proposal_id: int, db: Session = Depends(get_db)):
+async def finalize_nested(proposal_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Finalize a proposal (close voting and determine outcome) - nested route.
+    Note: In production mode, email notifications are triggered by blockchain events.
+    In demo mode, emails are sent via background tasks.
     """
     logger.info(f"Finalizing proposal: {proposal_id}")
 
@@ -950,6 +993,20 @@ async def finalize_nested(proposal_id: int, db: Session = Depends(get_db)):
         logger.info(
             f"Proposal finalized: ID={proposal_id}, status={proposal.status}")
 
+        # In demo mode, send emails via API. In production, blockchain listener handles it
+        if DEMO_MODE:
+            background_tasks.add_task(
+                send_proposal_outcome_emails,
+                proposal.id,
+                proposal.title,
+                proposal.status,
+                proposal.yes_votes,
+                proposal.no_votes
+            )
+        else:
+            logger.info(
+                "Email notifications will be triggered by blockchain event listener")
+
         return {
             "success": True,
             "proposal_id": proposal.id,
@@ -964,6 +1021,9 @@ async def finalize_nested(proposal_id: int, db: Session = Depends(get_db)):
         logger.error(f"Error finalizing proposal: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Failed to finalize proposal: {str(e)}")
+
+
+<< << << < HEAD
 
 
 @app.post("/sync/storacha/manifest")
@@ -1355,6 +1415,248 @@ async def voice_interaction(proposal_id: int, request: VoiceInteractionRequest, 
             status_code=500,
             detail=f"Voice interaction failed: {str(e)}"
         )
+
+
+@app.post("/users")
+async def create_or_update_user(request: CreateUserRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    """
+    Create or update a user with wallet address and optional email.
+    Sends a congratulations email if email is provided and is new or updated.
+    """
+    logger.info(
+        f"Creating/updating user: wallet={request.wallet_address}, email={request.email}")
+
+    try:
+        # Check if user already exists
+        existing_user = db.query(DBUser).filter(
+            DBUser.wallet_address == request.wallet_address
+        ).first()
+
+        email_was_added = False
+
+        if existing_user:
+            # Update existing user
+            if request.email and request.email != existing_user.email:
+                email_was_added = True
+                existing_user.email = request.email
+                existing_user.updated_at = datetime.utcnow()
+                db.commit()
+                db.refresh(existing_user)
+                logger.info(f"Updated user email: {request.wallet_address}")
+        else:
+            # Create new user
+            new_user = DBUser(
+                wallet_address=request.wallet_address,
+                email=request.email
+            )
+            db.add(new_user)
+            db.commit()
+            db.refresh(new_user)
+            if request.email:
+                email_was_added = True
+            logger.info(f"Created new user: {request.wallet_address}")
+
+        # Send email in background if email was added
+        if email_was_added and request.email:
+            background_tasks.add_task(
+                send_congratulations_email_task,
+                request.wallet_address,
+                request.email
+            )
+
+        return {
+            "success": True,
+            "wallet_address": request.wallet_address,
+            "email": request.email,
+            "email_sent": email_was_added and request.email is not None
+        }
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating/updating user: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create/update user: {str(e)}")
+
+
+@app.post("/organizations")
+async def create_organization(
+    request: CreateOrganizationRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new organization and save it to Storacha/IPFS.
+    """
+    logger.info(
+        f"Creating organization: {request.name}, creator: {request.creator_wallet}, members: {len(request.team_members)}"
+    )
+
+    try:
+        # Prepare organization data for IPFS
+        org_data = {
+            "name": request.name,
+            "sector": request.sector,
+            "creator_wallet": request.creator_wallet,
+            "team_members": request.team_members,
+            "member_count": len(request.team_members),
+            "created_at": datetime.utcnow().isoformat(),
+        }
+
+        # Upload to Storacha/IPFS
+        logger.info("Uploading organization data to Storacha/IPFS...")
+        ipfs_cid = upload_json_to_ipfs(
+            org_data, f"organization_{request.name.replace(' ', '_')}.json")
+
+        # Save to database
+        organization = DBOrganization(
+            name=request.name,
+            sector=request.sector,
+            ipfs_cid=ipfs_cid,
+            creator_wallet=request.creator_wallet,
+            team_members=request.team_members,
+        )
+
+        db.add(organization)
+        db.commit()
+        db.refresh(organization)
+
+        logger.info(
+            f"Organization created: ID={organization.id}, Name={organization.name}, IPFS CID={ipfs_cid}"
+        )
+
+        return {
+            "success": True,
+            "id": organization.id,
+            "name": organization.name,
+            "sector": organization.sector,
+            "ipfs_cid": organization.ipfs_cid,
+            "creator_wallet": organization.creator_wallet,
+            "team_members": organization.team_members,
+            "member_count": len(organization.team_members),
+            "created_at": organization.created_at.isoformat(),
+        }
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating organization: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create organization: {str(e)}"
+        )
+
+
+@app.get("/organizations")
+async def get_organizations(
+    wallet_address: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Get organizations. If wallet_address is provided, returns organizations where the user is a member.
+    """
+    try:
+        if wallet_address:
+            # Get organizations where user is creator or team member
+            organizations = db.query(DBOrganization).filter(
+                (DBOrganization.creator_wallet == wallet_address) |
+                (DBOrganization.team_members.contains([wallet_address]))
+            ).all()
+        else:
+            # Get all organizations
+            organizations = db.query(DBOrganization).all()
+
+        return [
+            {
+                "id": org.id,
+                "name": org.name,
+                "sector": org.sector,
+                "ipfs_cid": org.ipfs_cid,
+                "creator_wallet": org.creator_wallet,
+                "team_members": org.team_members,
+                "member_count": len(org.team_members),
+                "created_at": org.created_at.isoformat(),
+            }
+            for org in organizations
+        ]
+
+    except Exception as e:
+        logger.error(f"Error fetching organizations: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch organizations: {str(e)}"
+        )
+
+
+def send_congratulations_email_task(wallet_address: str, email: str):
+    """
+    Send a congratulations email to the user when they add their email.
+    This function is called as a background task.
+    """
+    try:
+        send_email(wallet_address, email)
+        logger.info(
+            f"Congratulations email sent to {email} for wallet {wallet_address}")
+    except Exception as e:
+        logger.error(
+            f"Failed to send congratulations email to {email}: {str(e)}")
+
+
+def send_proposal_outcome_emails(
+    proposal_id: int,
+    proposal_title: str,
+    status: str,
+    yes_votes: int,
+    no_votes: int
+):
+    """
+    Send email notifications to all users who voted on a proposal when it's finalized.
+    This function is called as a background task.
+    """
+    try:
+        from .db import SessionLocal
+
+        db = SessionLocal()
+        try:
+            # Get all votes for this proposal
+            votes = db.query(DBVote).filter(
+                DBVote.proposal_id == proposal_id
+            ).all()
+
+            if not votes:
+                logger.info(
+                    f"No votes found for proposal {proposal_id}, skipping email notifications")
+                return
+
+            # Get unique voter addresses
+            voter_addresses = list(set([vote.voter_address for vote in votes]))
+
+            # Get email addresses for voters
+            users = db.query(DBUser).filter(
+                DBUser.wallet_address.in_(voter_addresses),
+                DBUser.email.isnot(None)
+            ).all()
+
+            emails_sent = 0
+            for user in users:
+                if user.email:
+                    try:
+                        send_proposal_outcome_email(
+                            email=user.email,
+                            proposal_title=proposal_title,
+                            proposal_id=proposal_id,
+                            status=status,
+                            yes_votes=yes_votes,
+                            no_votes=no_votes
+                        )
+                        emails_sent += 1
+                    except Exception as e:
+                        logger.error(
+                            f"Failed to send outcome email to {user.email}: {str(e)}")
+
+            logger.info(
+                f"Sent proposal outcome emails to {emails_sent} voters for proposal {proposal_id} ({status})"
+            )
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"Failed to send proposal outcome emails: {str(e)}")
 
 
 if __name__ == "__main__":

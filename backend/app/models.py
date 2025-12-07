@@ -45,3 +45,33 @@ class Vote(Base):
     def __repr__(self):
         return f"<Vote(id={self.id}, proposal_id={self.proposal_id}, vote={self.vote})>"
 
+
+class User(Base):
+    """User model for storing wallet addresses and optional email addresses."""
+    __tablename__ = "users"
+    
+    wallet_address = Column(String, primary_key=True, index=True)
+    email = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<User(wallet_address='{self.wallet_address}', email='{self.email}')>"
+
+
+class Organization(Base):
+    """Organization model for storing team organizations."""
+    __tablename__ = "organizations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    sector = Column(String, nullable=True)
+    ipfs_cid = Column(String, nullable=True)  # CID of organization data on IPFS
+    creator_wallet = Column(String, nullable=False)  # Wallet address of creator
+    team_members = Column(JSON, nullable=False)  # List of wallet addresses
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<Organization(id={self.id}, name='{self.name}', sector='{self.sector}')>"
+

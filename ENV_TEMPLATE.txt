@@ -144,6 +144,34 @@ STARTUP_SEARCH_SOURCES=demo,producthunt
 # LOG_FILE=app.log
 
 # ===========================================
+# Optional: Email Configuration
+# ===========================================
+# SMTP server for sending notification emails
+# SMTP_SERVER=smtp.gmail.com
+# SMTP_PORT=587
+# SMTP_USERNAME=your-email@gmail.com
+# SMTP_PASSWORD=your-app-password
+# EMAIL_FROM=your-email@gmail.com
+# EMAIL_FROM_NAME=SmartBoard Team
+#
+# Note: For Gmail, you'll need to use an App Password:
+# 1. Go to Google Account settings
+# 2. Enable 2-Step Verification
+# 3. Generate an App Password for "Mail"
+# 4. Use that App Password as SMTP_PASSWORD
+
+# ===========================================
+# Optional: Blockchain Event Listener
+# ===========================================
+# How often to poll the blockchain for finalized proposals (in seconds)
+# Default: 30 (checks every 30 seconds)
+# BLOCKCHAIN_POLL_INTERVAL=30
+#
+# Note: In production mode (DEMO_MODE=false), the blockchain listener
+# automatically monitors the smart contract for proposal finalization events
+# and triggers email notifications. In demo mode, emails are sent via API endpoints.
+
+# ===========================================
 # Optional: Security Configuration
 # ===========================================
 # JWT_SECRET=your-secret-key-for-jwt

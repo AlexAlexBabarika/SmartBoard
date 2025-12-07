@@ -6,9 +6,9 @@
     favoritesStore,
     activeFilters,
     availableTags,
-    confidenceHistogram,
     sampleProducts,
   } from "../stores/filters.js";
+  import FloatingNetwork from "./FloatingNetwork.svelte";
 
   const dispatch = createEventDispatcher();
 
@@ -17,6 +17,17 @@
   let error = null;
   let sidebarOpen = true;
   let searchTimeout;
+  let mainContentElement;
+  let contentWidth = 1200;
+  let contentHeight = 800;
+  let searchSources = ["producthunt"];
+  let proposalLimit = 5;
+  let additionalFields = "";
+  let searching = false;
+  let searchStatus = "";
+  let searchError = null;
+  const MAX_POLL_ATTEMPTS = 10;
+  const POLL_DELAY_MS = 3000;
 
   // Subscribe to stores
   $: filters = $filtersStore;
@@ -122,8 +133,39 @@
     }));
   })();
 
+  // Calculate confidence histogram from actual proposals
+  $: confidenceHistogram = (() => {
+    // Create bins for confidence ranges (0-10, 10-20, ..., 90-100)
+    const bins = Array.from({ length: 10 }, (_, i) => ({
+      min: i * 10,
+      max: (i + 1) * 10,
+      count: 0
+    }));
+
+    // Count proposals in each bin
+    proposals.forEach((proposal) => {
+      const confidence = proposal.confidence !== undefined && proposal.confidence !== null 
+        ? proposal.confidence 
+        : 0;
+      
+      // Find the appropriate bin
+      const binIndex = Math.min(
+        Math.floor(confidence / 10),
+        9 // Cap at last bin (90-100)
+      );
+      
+      if (binIndex >= 0 && binIndex < bins.length) {
+        bins[binIndex].count++;
+      }
+    });
+
+    return bins;
+  })();
+
   // Get max histogram count for scaling bars
-  $: maxHistogramCount = Math.max(...confidenceHistogram.map((h) => h.count));
+  $: maxHistogramCount = confidenceHistogram.length > 0 
+    ? Math.max(...confidenceHistogram.map((h) => h.count), 1) 
+    : 1;
 
   // Helper function to generate unique image based on proposal ID
   function getProposalImage(proposal) {
@@ -235,11 +277,24 @@
 
   onMount(async () => {
     await loadProposals();
+
+    // Update content dimensions for floating network
+    const updateDimensions = () => {
+      if (mainContentElement) {
+        contentWidth = mainContentElement.clientWidth;
+        contentHeight = mainContentElement.clientHeight;
+      }
+    };
+
+    updateDimensions();
+    window.addEventListener("resize", updateDimensions);
+
+    return () => window.removeEventListener("resize", updateDimensions);
   });
 
-  async function loadProposals() {
+  async function loadProposals({ useSampleFallback = true } = {}) {
     const safetyTimeout = setTimeout(() => {
-      if (loading) {
+      if (loading && useSampleFallback && !searching) {
         loading = false;
         error = "Backend unavailable. Please check if the server is running.";
         // Don't use sample data on timeout - show empty state instead
@@ -281,6 +336,69 @@
     }
   }
 
+  async function initiateSearch() {
+    searchError = null;
+    searchStatus = "";
+    proposals = []; // Clear existing proposals immediately so UI shows empty state
+
+    const selectedSources = Array.isArray(searchSources)
+      ? searchSources.filter(Boolean)
+      : [];
+
+    if (selectedSources.length === 0) {
+      searchError = "Select at least one data source.";
+      return;
+    }
+
+    const limit = Math.max(1, Math.min(50, Number(proposalLimit) || 1));
+
+    searching = true;
+    loading = true;
+    proposals = [];
+
+    try {
+      const payload = {
+        sources: selectedSources,
+        limit_per_source: limit,
+        auto_process: true,
+      };
+
+      if (additionalFields.trim()) {
+        payload.additional_fields = additionalFields.trim();
+      }
+
+      const response = await proposalAPI.discoverStartups(payload);
+      searchStatus =
+        response?.message ||
+        "Search started. New proposals will appear once ready.";
+
+      const found = await waitForProposals();
+      if (!found) {
+        searchStatus =
+          "Search started. Waiting for new proposals... (none received yet)";
+      }
+    } catch (e) {
+      searchError = e?.message || "Failed to start discovery.";
+      loading = false;
+    } finally {
+      searching = false;
+    }
+  }
+
+  async function waitForProposals() {
+    for (let attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
+      const fetched = await proposalAPI.getProposals().catch(() => null);
+      if (Array.isArray(fetched) && fetched.length > 0) {
+        proposals = fetched;
+        loading = false;
+        return true;
+      }
+      await new Promise((resolve) => setTimeout(resolve, POLL_DELAY_MS));
+    }
+    loading = false;
+    return false;
+  }
+
   function selectProposal(id) {
     dispatch("selectProposal", { id });
   }
@@ -307,6 +425,28 @@
 
   function toggleSidebar() {
     sidebarOpen = !sidebarOpen;
+  }
+
+  // Generate ASCII balls for votes
+  function generateVoteBalls(yesVotes, noVotes, maxBalls = 20) {
+    const totalVotes = yesVotes + noVotes;
+    if (totalVotes === 0) {
+      return { yesBalls: "", noBalls: "", total: 0 };
+    }
+
+    // Scale votes to maxBalls if total exceeds it
+    let yesCount = yesVotes;
+    let noCount = noVotes;
+    if (totalVotes > maxBalls) {
+      yesCount = Math.round((yesVotes / totalVotes) * maxBalls);
+      noCount = maxBalls - yesCount;
+    }
+
+    // Green ball (●) for yes votes, red ball (●) for no votes
+    const yesBalls = "●".repeat(yesCount);
+    const noBalls = "●".repeat(noCount);
+
+    return { yesBalls, noBalls, total: yesCount + noCount };
   }
 </script>
 
@@ -436,7 +576,7 @@
           <h3 class="sidebar-label">Confidence</h3>
 
           <!-- Histogram Bars -->
-          <div class="flex items-end gap-0.5 h-12 mb-4">
+          <div class="flex items-end gap-0.5 h-12 mb-2">
             {#each confidenceHistogram as bar}
               {@const isInRange =
                 bar.min >= filters.confidenceMin &&
@@ -448,6 +588,15 @@
                 title="{bar.count} items between {bar.min}-{bar.max}%"
               ></div>
             {/each}
+          </div>
+
+          <!-- Confidence Axis -->
+          <div class="flex justify-between text-xs text-pe-text-dim mb-4 px-0.5">
+            <span>0</span>
+            <span>25</span>
+            <span>50</span>
+            <span>75</span>
+            <span>100</span>
           </div>
 
           <!-- Confidence Range Slider -->
@@ -550,9 +699,24 @@
 
     <!-- Main Content -->
     <main class="flex-1 min-h-screen lg:ml-0">
-      <div class="p-6 lg:p-8">
+      <div
+        bind:this={mainContentElement}
+        class="p-6 lg:p-8 relative overflow-hidden"
+      >
+        <!-- Floating Vote Balls Background -->
+        <div
+          class="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-30"
+        >
+          <FloatingNetwork
+            width={contentWidth}
+            height={contentHeight}
+            yesVotes={12}
+            noVotes={8}
+            className="w-full h-full"
+          />
+        </div>
         <!-- Header -->
-        <div class="mb-8">
+        <div class="mb-8 relative z-10">
           <!-- Mobile sidebar toggle -->
           <button
             class="lg:hidden mb-4 p-2 rounded-pe bg-pe-card border border-pe-border hover:bg-pe-card-hover transition-colors"
@@ -579,6 +743,94 @@
               ? "Investment Proposals"
               : filters.category}
           </h1>
+
+          <div class="mt-4 relative z-10">
+            <div class="card-pe p-4 border border-pe-border">
+              <div
+                class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3"
+              >
+                <div>
+                  <h3 class="font-display text-lg text-pe-text">
+                    Initiate new search
+                  </h3>
+                  <p class="text-pe-muted text-sm">
+                    Choose sources and pull fresh proposals. Existing proposals will
+                    be cleared.
+                  </p>
+                </div>
+                <button
+                  class="btn-accent-pe px-4 py-2 disabled:opacity-60"
+                  on:click={initiateSearch}
+                  disabled={searching}
+                >
+                  {searching ? "Searching..." : "Initiate search"}
+                </button>
+              </div>
+
+              <div class="grid gap-4 mt-4 md:grid-cols-2">
+                <div class="space-y-2">
+                  <label class="sidebar-label">Sources</label>
+                  <div class="flex flex-wrap gap-3">
+                    <label class="flex items-center gap-2 text-sm text-pe-text">
+                      <input
+                        type="checkbox"
+                        value="producthunt"
+                        bind:group={searchSources}
+                        class="h-4 w-4 rounded border-pe-border text-pe-accent"
+                        aria-label="Use Product Hunt"
+                      />
+                      Product Hunt
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-pe-text">
+                      <input
+                        type="checkbox"
+                        value="ycombinator"
+                        bind:group={searchSources}
+                        class="h-4 w-4 rounded border-pe-border text-pe-accent"
+                        aria-label="Use Y Combinator"
+                      />
+                      Y Combinator
+                    </label>
+                  </div>
+                  <p class="text-xs text-pe-muted">
+                    Select where the agent should search for startups.
+                  </p>
+                </div>
+
+                <div class="space-y-2">
+                  <label class="sidebar-label">Number of proposals per source</label>
+                  <input
+                    type="number"
+                    class="price-input w-full"
+                    bind:value={proposalLimit}
+                    min="1"
+                    max="50"
+                    aria-label="Number of proposals to fetch"
+                  />
+                  <p class="text-xs text-pe-muted">Between 1 and 50 per source.</p>
+                </div>
+              </div>
+
+              <div class="mt-4 space-y-2">
+                <label class="sidebar-label">Additional startup fields</label>
+                <textarea
+                  class="search-input-pe w-full min-h-[80px]"
+                  placeholder="e.g. sector=AI; stage=Seed; geography=US"
+                  bind:value={additionalFields}
+                  aria-label="Additional startup fields"
+                ></textarea>
+                <p class="text-xs text-pe-muted">
+                  Optional hints the agentic pipeline can use when pulling proposals.
+                </p>
+              </div>
+
+              {#if searchError}
+                <p class="text-red-500 text-sm mt-3">{searchError}</p>
+              {:else if searchStatus}
+                <p class="text-pe-muted text-sm mt-3">{searchStatus}</p>
+              {/if}
+            </div>
+          </div>
 
           <!-- Active Filters -->
           {#if activeFiltersList.length > 0}
@@ -687,7 +939,7 @@
           </div>
         {:else if products.length === 0}
           <!-- Empty State -->
-          <div class="text-center py-20">
+          <div class="text-center py-20 relative z-10">
             <svg
               class="w-24 h-24 mx-auto text-pe-muted/30"
               fill="none"
@@ -734,7 +986,9 @@
           </div>
         {:else}
           <!-- Product Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div
+            class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 relative z-10"
+          >
             {#each products as product, index (product.id)}
               <article
                 class="card-pe group cursor-pointer {getStaggerClass(index)}"
@@ -835,32 +1089,32 @@
 
                   <!-- Vote Bar -->
                   {#if true}
-                    {@const yesVotes = product.yes_votes || 0}
-                    {@const noVotes = product.no_votes || 0}
-                    {@const totalVotes = yesVotes + noVotes}
-                    {@const yesPercentage =
-                      totalVotes > 0 ? (yesVotes / totalVotes) * 100 : 50}
-                    {@const noPercentage =
-                      totalVotes > 0 ? (noVotes / totalVotes) * 100 : 50}
-                    {@const isEqual = yesVotes === noVotes && totalVotes > 0}
+                  {@const yesVotes = product.yes_votes || 0}
+                  {@const noVotes = product.no_votes || 0}
+                  {@const totalVotes = yesVotes + noVotes}
+                  {@const yesPercentage =
+                    totalVotes > 0 ? (yesVotes / totalVotes) * 100 : 50}
+                  {@const noPercentage =
+                    totalVotes > 0 ? (noVotes / totalVotes) * 100 : 50}
+                  {@const isEqual = yesVotes === noVotes && totalVotes > 0}
 
-                    <div class="mt-3">
-                      <div class="flex items-center justify-between mb-1">
-                        <span class="text-xs text-pe-muted">Votes</span>
-                        <span class="text-xs text-pe-muted">
-                          {yesVotes} Yes / {noVotes} No
-                        </span>
-                      </div>
-                      <div
-                        class="relative h-2 bg-pe-chip-bg rounded-full overflow-hidden"
-                      >
-                        {#if isEqual}
-                          <!-- Equal votes: green on left, red on right, white line in center -->
-                          <div class="absolute inset-0 flex">
-                            <div class="flex-1 bg-pe-accent"></div>
-                            <div class="w-0.5 bg-white"></div>
-                            <div class="flex-1 bg-red-500"></div>
-                          </div>
+                  <div class="mt-3">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-xs text-pe-muted">Votes</span>
+                      <span class="text-xs text-pe-muted">
+                        {yesVotes} Yes / {noVotes} No
+                      </span>
+                    </div>
+                    <div
+                      class="relative h-2 bg-pe-chip-bg rounded-full overflow-hidden"
+                    >
+                      {#if isEqual}
+                        <!-- Equal votes: green on left, red on right, white line in center -->
+                        <div class="absolute inset-0 flex">
+                          <div class="flex-1 bg-pe-accent"></div>
+                          <div class="w-0.5 bg-white"></div>
+                          <div class="flex-1 bg-red-500"></div>\
+                        </div>
                         {:else if totalVotes > 0}
                           <!-- Unequal votes: proportional bars -->
                           <div class="absolute inset-0 flex">

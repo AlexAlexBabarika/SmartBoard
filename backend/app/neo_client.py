@@ -146,13 +146,36 @@ class NeoClient:
             proposal_id: ID of the proposal
             
         Returns:
-            Dict with proposal data
+            Dict with proposal data, or string in format: title|ipfs_hash|deadline|confidence|yes_votes|no_votes|finalized
         """
         if self.is_simulated:
-            return self.simulated_proposals.get(proposal_id, {})
+            proposal = self.simulated_proposals.get(proposal_id, {})
+            if proposal:
+                # Return in same format as smart contract
+                finalized = 1 if proposal.get("finalized", False) else 0
+                return (
+                    f"{proposal.get('title', '')}|"
+                    f"{proposal.get('ipfs_hash', '')}|"
+                    f"{proposal.get('deadline', 0)}|"
+                    f"{proposal.get('confidence', 0)}|"
+                    f"{proposal.get('yes_votes', 0)}|"
+                    f"{proposal.get('no_votes', 0)}|"
+                    f"{finalized}"
+                )
+            return ""
         
         # Real implementation would query the contract
-        return {}
+        # from neo.mamba import Mamba
+        # mamba = Mamba(rpc=self.rpc_url)
+        # result = mamba.invoke_contract(
+        #     contract_hash=self.contract_hash,
+        #     operation="get_proposal",
+        #     args=[proposal_id]
+        # )
+        # return result.stack[0]  # Returns string in format: title|ipfs_hash|deadline|confidence|yes_votes|no_votes|finalized
+        
+        logger.warning("Real NEO implementation not configured, using simulation")
+        return ""
 
     def has_voted(self, proposal_id: int, voter: str) -> bool:
         """

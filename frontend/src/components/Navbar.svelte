@@ -1,6 +1,7 @@
 <script>
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, onDestroy, onMount } from "svelte";
   import { walletStore } from "../stores/wallet.js";
+  import { organizationAPI } from "../lib/api.js";
 
   export let currentView;
 
@@ -10,7 +11,86 @@
 
   let mobileMenuOpen = false;
   let showAddressPrompt = false;
+  let showOrganizationsMenu = false;
   let addressInput = "";
+  let emailInput = "";
+  let addressInputElement;
+  let emailInputElement;
+
+  let userOrganizations = [];
+  let loadingOrganizations = false;
+  let clickOutsideHandler;
+
+  // Load organizations when wallet is connected
+  $: if (wallet.connected && wallet.address) {
+    loadOrganizations();
+  } else {
+    userOrganizations = [];
+  }
+
+  async function loadOrganizations() {
+    if (!wallet.connected || !wallet.address) {
+      userOrganizations = [];
+      return;
+    }
+
+    if (loadingOrganizations) return;
+
+    loadingOrganizations = true;
+    try {
+      userOrganizations = await organizationAPI.getOrganizations(
+        wallet.address,
+      );
+    } catch (error) {
+      console.error("Failed to load organizations:", error);
+      userOrganizations = [];
+    } finally {
+      loadingOrganizations = false;
+    }
+  }
+
+  // Refresh organizations when menu opens
+  function toggleOrganizationsMenu() {
+    showOrganizationsMenu = !showOrganizationsMenu;
+    if (showOrganizationsMenu && wallet.connected) {
+      loadOrganizations();
+    }
+  }
+
+  // Lock body scroll when modal is open
+  $: if (typeof document !== "undefined") {
+    if (showAddressPrompt) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+  }
+
+  // Close organizations menu when clicking outside
+  $: if (typeof document !== "undefined") {
+    if (showOrganizationsMenu && !clickOutsideHandler) {
+      clickOutsideHandler = (event) => {
+        const target = event.target;
+        if (!target.closest(".organizations-dropdown")) {
+          showOrganizationsMenu = false;
+        }
+      };
+      document.addEventListener("click", clickOutsideHandler);
+    } else if (!showOrganizationsMenu && clickOutsideHandler) {
+      document.removeEventListener("click", clickOutsideHandler);
+      clickOutsideHandler = null;
+    }
+  }
+
+  // Cleanup on destroy
+  onDestroy(() => {
+    if (typeof document !== "undefined") {
+      document.body.style.overflow = "";
+      if (clickOutsideHandler) {
+        document.removeEventListener("click", clickOutsideHandler);
+      }
+    }
+  });
 
   function handleNavigation(view) {
     dispatch("navigate", { view });
@@ -24,20 +104,32 @@
       // Show prompt for wallet address
       showAddressPrompt = true;
       addressInput = "";
+      emailInput = "";
+      // Focus the input after the modal is shown
+      setTimeout(() => {
+        if (addressInputElement) {
+          addressInputElement.focus();
+        }
+      }, 100);
     }
   }
 
   function handleAddressSubmit() {
     if (addressInput.trim()) {
-      dispatch("connectWallet", { address: addressInput.trim() });
+      dispatch("connectWallet", {
+        address: addressInput.trim(),
+        email: emailInput.trim() || null,
+      });
       showAddressPrompt = false;
       addressInput = "";
+      emailInput = "";
     }
   }
 
   function handleAddressCancel() {
     showAddressPrompt = false;
     addressInput = "";
+    emailInput = "";
   }
 
   function truncateAddress(address) {
@@ -48,7 +140,27 @@
   function toggleMobileMenu() {
     mobileMenuOpen = !mobileMenuOpen;
   }
+
+  function handleCreateNewTeam() {
+    showOrganizationsMenu = false;
+    handleNavigation("create-team");
+  }
+
+  function handleSelectOrganization(orgId) {
+    showOrganizationsMenu = false;
+    handleNavigation("organizations");
+    // TODO: Navigate to specific organization detail
+  }
 </script>
+
+<!-- Escape key handler for modal - must be at top level -->
+<svelte:body
+  on:keydown={(e) => {
+    if (e.key === "Escape" && showAddressPrompt) {
+      handleAddressCancel();
+    }
+  }}
+/>
 
 <!-- Glass Navigation Bar -->
 <nav class="fixed top-0 left-0 right-0 z-50 nav-glass">
@@ -57,24 +169,14 @@
       <!-- Logo (Left) -->
       <div class="flex-shrink-0">
         <button
-          on:click={() => handleNavigation("dashboard")}
+          on:click={() => handleNavigation("landing")}
           class="flex items-center gap-2 focus-ring rounded-pe"
-          aria-label="Go to dashboard"
+          aria-label="Go to landing page"
         >
-          <!-- Plant/Leaf Icon in Accent Green -->
-          <svg
-            class="w-7 h-7 text-pe-accent"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-          >
-            <path
-              d="M12 2C8.5 2 4 4.5 4 9.5C4 14 8 18 12 22C16 18 20 14 20 9.5C20 4.5 15.5 2 12 2ZM12 18.5C9 15.5 6 12.5 6 9.5C6 5.91 9.13 4 12 4C14.87 4 18 5.91 18 9.5C18 12.5 15 15.5 12 18.5Z"
-            />
-            <path
-              d="M12 6C10.5 6 8.5 7 8.5 9.5C8.5 11.5 10 13 12 14.5C14 13 15.5 11.5 15.5 9.5C15.5 7 13.5 6 12 6Z"
-            />
-          </svg>
-          <span class="font-display font-semibold text-lg text-pe-text">SmartBoard
+          <!-- SmartBoard Logo -->
+          <img src="/logo.svg" alt="SmartBoard Logo" class="w-11 h-11" />
+          <span class="font-display font-semibold text-lg text-pe-text"
+            >SmartBoard
           </span>
         </button>
       </div>
@@ -90,18 +192,117 @@
         </button>
         <button
           class="nav-link"
-          class:active={currentView === "create"}
-          on:click={() => handleNavigation("create")}
-        >
-          Create Proposal
-        </button>
-        <button
-          class="nav-link"
           class:active={currentView === "qa"}
           on:click={() => handleNavigation("qa")}
         >
           Q&A
         </button>
+        <!-- Organizations Dropdown -->
+        <div class="relative organizations-dropdown">
+          <button
+            type="button"
+            class="nav-link"
+            class:active={currentView === "create-team" ||
+              currentView === "organizations" ||
+              showOrganizationsMenu}
+            on:click={toggleOrganizationsMenu}
+            aria-expanded={showOrganizationsMenu}
+            aria-haspopup="true"
+          >
+            Teams
+            <svg
+              class="w-4 h-4 inline-block ml-1 transition-transform"
+              class:rotate-180={showOrganizationsMenu}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+
+          {#if showOrganizationsMenu}
+            <div
+              role="menu"
+              tabindex="-1"
+              class="absolute top-full left-0 mt-2 w-64 bg-pe-panel border border-pe-border rounded-pe-lg shadow-xl z-50 animate-slide-up"
+              on:click|stopPropagation
+            >
+              <div class="p-2">
+                {#if userOrganizations.length > 0}
+                  <div
+                    class="px-3 py-2 text-xs font-semibold text-pe-muted uppercase tracking-wider"
+                  >
+                    Your Organizations
+                  </div>
+                  {#each userOrganizations as org (org.id)}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      on:click={() => handleSelectOrganization(org.id)}
+                      class="w-full text-left px-3 py-2 rounded-pe hover:bg-pe-card transition-colors group"
+                    >
+                      <div class="flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-medium text-pe-text truncate">
+                            {org.name}
+                          </p>
+                          <p class="text-xs text-pe-muted truncate">
+                            {org.sector}
+                          </p>
+                        </div>
+                        <svg
+                          class="w-4 h-4 text-pe-muted opacity-0 group-hover:opacity-100 transition-opacity"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </div>
+                    </button>
+                  {/each}
+                  <div class="border-t border-pe-border my-2"></div>
+                {:else}
+                  <div class="px-3 py-4 text-center">
+                    <p class="text-sm text-pe-muted mb-2">
+                      No organizations yet
+                    </p>
+                  </div>
+                {/if}
+                <button
+                  on:click={handleCreateNewTeam}
+                  class="w-full px-3 py-2 rounded-pe bg-pe-accent text-white hover:bg-pe-accent-hover transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+                >
+                  <svg
+                    class="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  Create New Team
+                </button>
+              </div>
+            </div>
+          {/if}
+        </div>
       </div>
 
       <!-- Right Side: User Icons + Wallet -->
@@ -183,74 +384,101 @@
         </button>
         <button
           class="mobile-nav-link"
-          class:active={currentView === "create"}
-          on:click={() => handleNavigation("create")}
-        >
-          Create Proposal
-        </button>
-        <button
-          class="mobile-nav-link"
           class:active={currentView === "qa"}
           on:click={() => handleNavigation("qa")}
         >
           Q&A
         </button>
-      </div>
-    </div>
-  {/if}
-
-  <!-- Address Prompt Modal -->
-  {#if showAddressPrompt}
-    <div
-      class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-      on:click|self={handleAddressCancel}
-      on:keydown={(e) => e.key === "Escape" && handleAddressCancel()}
-      tabindex="-1"
-    >
-      <div
-        class="bg-pe-panel border border-pe-border rounded-pe-lg p-6 max-w-md w-full shadow-xl"
-        role="document"
-        on:click|stopPropagation
-        on:keydown={(e) => e.stopPropagation()}
-      >
-        <h3
-          id="modal-title"
-          class="font-display font-semibold text-lg text-pe-text mb-4"
+        <button
+          class="mobile-nav-link"
+          class:active={currentView === "organizations"}
+          on:click={() => handleNavigation("organizations")}
         >
-          Enter your NEO wallet address
-        </h3>
-        <input
-          type="text"
-          class="search-input-pe w-full mb-4"
-          placeholder="N..."
-          bind:value={addressInput}
-          on:keydown={(e) => {
-            if (e.key === "Enter") handleAddressSubmit();
-            if (e.key === "Escape") handleAddressCancel();
-          }}
-        />
-        <div class="flex gap-3 justify-end">
-          <button
-            class="px-4 py-2 rounded-pe text-pe-muted hover:text-pe-text hover:bg-pe-card transition-colors"
-            on:click={handleAddressCancel}
-          >
-            Cancel
-          </button>
-          <button
-            class="px-4 py-2 rounded-pe bg-pe-accent text-white hover:bg-pe-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            on:click={handleAddressSubmit}
-            disabled={!addressInput.trim()}
-          >
-            Connect
-          </button>
-        </div>
+          Teams
+        </button>
       </div>
     </div>
   {/if}
 </nav>
+
+<!-- Address Prompt Modal -->
+{#if showAddressPrompt}
+  <div
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-title"
+    on:click|self={handleAddressCancel}
+    tabindex="-1"
+  >
+    <div
+      class="bg-pe-panel border border-pe-border rounded-pe-lg p-6 max-w-md w-full shadow-xl animate-slide-up"
+      role="document"
+      on:click|stopPropagation
+    >
+      <h3
+        id="modal-title"
+        class="font-display font-semibold text-lg text-pe-text mb-4"
+      >
+        Enter your NEO wallet address
+      </h3>
+      <input
+        type="text"
+        bind:this={addressInputElement}
+        class="search-input-pe w-full mb-4"
+        placeholder="N..."
+        bind:value={addressInput}
+        on:keydown={(e) => {
+          if (e.key === "Enter" && addressInput.trim()) {
+            e.preventDefault();
+            if (emailInputElement) {
+              emailInputElement.focus();
+            } else {
+              handleAddressSubmit();
+            }
+          }
+          if (e.key === "Escape") handleAddressCancel();
+        }}
+        autofocus
+      />
+      <div class="mb-4">
+        <label for="email-input" class="block text-sm text-pe-muted mb-2">
+          Optional: add your email (solely for notifications)
+        </label>
+        <input
+          id="email-input"
+          type="email"
+          bind:this={emailInputElement}
+          class="search-input-pe w-full"
+          placeholder="your.email@example.com"
+          bind:value={emailInput}
+          on:keydown={(e) => {
+            if (e.key === "Enter" && addressInput.trim()) {
+              e.preventDefault();
+              handleAddressSubmit();
+            }
+            if (e.key === "Escape") handleAddressCancel();
+          }}
+        />
+      </div>
+      <div class="flex gap-3 justify-end">
+        <button
+          class="px-4 py-2 rounded-pe text-pe-muted hover:text-pe-text hover:bg-pe-card transition-colors focus-ring"
+          on:click={handleAddressCancel}
+        >
+          Cancel
+        </button>
+        <button
+          class="px-4 py-2 rounded-pe bg-pe-accent text-white hover:bg-pe-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-ring"
+          on:click={handleAddressSubmit}
+          disabled={!addressInput.trim()}
+        >
+          Connect
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .nav-link {
