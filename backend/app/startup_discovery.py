@@ -11,7 +11,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Callable
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
@@ -986,7 +986,9 @@ def process_discovered_startup(startup_data: Dict[str, Any], use_direct_call: bo
 def discover_and_process_startups(
     sources: Optional[List[str]] = None,
     limit_per_source: int = DEFAULT_SOURCE_LIMIT,
-    auto_process: bool = True
+    additional_fields: Optional[str] = None,
+    auto_process: bool = True,
+    status_callback: Optional[Callable[[Dict[str, Any]], None]] = None
 ) -> Dict[str, Any]:
     """
     Discover startups and optionally process them through the agent.
@@ -1005,7 +1007,17 @@ def discover_and_process_startups(
     debug_log(f"Auto-process: {auto_process}")
     debug_log(f"Sources: {sources or STARTUP_SEARCH_SOURCES}")
     debug_log(f"Limit per source: {limit_per_source}")
+    if additional_fields:
+        preview = (additional_fields[:120] + "...") if len(additional_fields) > 120 else additional_fields
+        debug_log(f"Additional fields provided: {preview}", "DEBUG")
     debug_log("=" * 60)
+    
+    def update_status(update: Dict[str, Any]):
+        if status_callback:
+            try:
+                status_callback(update)
+            except Exception as e:
+                debug_log(f"Status callback error: {e}", "WARNING")
     
     # Discover startups
     discovery_start_time = datetime.now()
@@ -1028,6 +1040,13 @@ def discover_and_process_startups(
         results["startups"] = startups
         return results
     
+    update_status({
+        "status": "running",
+        "discovered": len(startups),
+        "processed": 0,
+        "failed": 0
+    })
+    
     # Process each startup
     debug_log(f"\nStarting processing phase for {len(startups)} startups...")
     processing_start_time = datetime.now()
@@ -1036,7 +1055,11 @@ def discover_and_process_startups(
         startup_name = startup.get("name", "Unknown")
         debug_log(f"\n[{idx}/{len(startups)}] Processing: {startup_name}")
         
-        process_result = process_discovered_startup(startup)
+        startup_payload = dict(startup)
+        if additional_fields:
+            startup_payload["additional_fields"] = additional_fields
+        
+        process_result = process_discovered_startup(startup_payload)
         if process_result:
             status = process_result.get("status", "unknown")
             if status == "success":
@@ -1052,6 +1075,14 @@ def discover_and_process_startups(
         else:
             results["failed"] += 1
             debug_log(f"  ✗ Processing returned None for: {startup_name}", "WARNING")
+        
+        update_status({
+            "processed": results["processed"],
+            "failed": results["failed"],
+            "current": startup_name,
+            "completed": idx,
+            "total": len(startups)
+        })
     
     processing_duration = (datetime.now() - processing_start_time).total_seconds()
     overall_duration = (datetime.now() - overall_start_time).total_seconds()
@@ -1068,6 +1099,15 @@ def discover_and_process_startups(
     debug_log(f"Processing time: {processing_duration:.2f}s")
     debug_log(f"Total time: {overall_duration:.2f}s")
     debug_log("=" * 60)
+    
+    update_status({
+        "status": "completed",
+        "discovered": results["discovered"],
+        "processed": results["processed"],
+        "failed": results["failed"],
+        "processing_duration": processing_duration,
+        "total_duration": overall_duration
+    })
     
     return results
 
