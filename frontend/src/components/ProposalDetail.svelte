@@ -417,11 +417,25 @@
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
-          d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+          d="M15 19l-7-7 7-7"
         />
       </svg>
-      <span class="text-red-400">{error}</span>
-    </div>
+      Back to Dashboard
+    </button>
+
+    {#if loading}
+      <div class="flex flex-col justify-center items-center py-20">
+        <div
+          class="w-12 h-12 border-3 border-pe-accent/30 border-t-pe-accent rounded-full animate-spin"
+        ></div>
+        <p class="text-pe-muted mt-4">Loading proposal...</p>
+      </div>
+    {:else if error}
+      <div
+        class="flex items-start gap-4 p-4 rounded-pe-lg bg-red-500/10 border border-red-500/20"
+      >
+        <svg
+          class="w-6 h-6 text-red-500 flex-shrink-0"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -430,11 +444,144 @@
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        Investment Memo (IPFS)
-      </h2>
+        <span class="text-red-400">{error}</span>
+      </div>
+    {:else if proposal}
+      <!-- Proposal header -->
+      <div class="card-pe p-6 bg-pe-card/20 backdrop-blur-md">
+        <div
+          class="flex flex-col md:flex-row justify-between items-start gap-4"
+        >
+          <div class="flex-1">
+            <h1 class="font-display text-3xl font-bold text-pe-text">
+              {proposal.title}
+            </h1>
+            <p class="text-sm text-pe-muted mt-2">
+              Created: {new Date(proposal.created_at).toLocaleString()}
+            </p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button
+              type="button"
+              class="p-3 rounded-pe border border-pe-border bg-pe-card hover:bg-pe-card-hover focus-ring flex items-center gap-2"
+              on:click={handleVoiceInteraction}
+              aria-label={recording ? "Stop recording" : "Ask with voice"}
+              title={recording ? "Stop recording" : "Ask with voice"}
+            >
+              {#if recording}
+                <svg
+                  class="w-5 h-5 text-red-500 animate-pulse"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                </svg>
+                <span class="text-sm text-red-400">Listening...</span>
+              {:else if playingState === "loading"}
+                <svg
+                  class="w-5 h-5 text-blue-400 animate-spin"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                <span class="text-sm text-blue-300">Processing...</span>
+              {:else if playingState === "playing"}
+                <svg
+                  class="w-5 h-5 text-green-400"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                <span class="text-sm text-green-300">Playing</span>
+              {:else}
+                <svg
+                  class="w-5 h-5 text-pe-text"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
+                  />
+                </svg>
+                <span class="text-sm text-pe-text">Ask with voice</span>
+              {/if}
+            </button>
+            <span
+              class="px-4 py-2 rounded-pe border text-sm font-medium uppercase tracking-wide {getStatusColor(
+                proposal.status,
+              )}"
+            >
+              {proposal.status}
+            </span>
+          </div>
+        </div>
+
+        <!-- Metrics -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+          <div class="p-4 rounded-pe bg-pe-panel border border-pe-border">
+            <p class="text-xs text-pe-muted uppercase tracking-wide">
+              Confidence Score
+            </p>
+            <p
+              class="text-2xl font-display font-bold mt-1
+            {proposal.confidence >= 80
+                ? 'text-pe-accent'
+                : proposal.confidence >= 60
+                  ? 'text-yellow-400'
+                  : 'text-red-400'}"
+            >
+              {proposal.confidence}/100
+            </p>
+          </div>
+
+          <div class="p-4 rounded-pe bg-pe-panel border border-pe-border">
+            <p class="text-xs text-pe-muted uppercase tracking-wide">
+              Yes Votes
+            </p>
+            <p class="text-2xl font-display font-bold mt-1 text-pe-accent">
+              {proposal.yes_votes}
+            </p>
+          </div>
+
+          <div class="p-4 rounded-pe bg-pe-panel border border-pe-border">
+            <p class="text-xs text-pe-muted uppercase tracking-wide">
+              No Votes
+            </p>
+            <p class="text-2xl font-display font-bold mt-1 text-red-400">
+              {proposal.no_votes}
+            </p>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="mt-6">
+          <h3 class="font-display font-semibold text-pe-text mb-2">Summary</h3>
+          <p class="text-pe-muted leading-relaxed">{proposal.summary}</p>
+        </div>
+      </div>
+
+      <!-- PDF Viewer -->
+      <div class="card-pe p-6 bg-pe-card/20 backdrop-blur-md">
+        <h2
+          class="flex items-center gap-2 font-display font-semibold text-lg text-pe-text"
+        >
+          <svg
+            class="h-5 w-5 text-pe-accent"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -479,40 +626,6 @@
               </svg>
               Download PDF
             </button>
-          </div>
-        </div>
-
-        <!-- Demo Mode Notice -->
-        {#if proposal.ipfs_cid.startsWith("bafysim")}
-          <div
-            class="flex items-start gap-4 p-4 mt-4 rounded-pe-lg bg-blue-500/10 border border-blue-500/20"
-          >
-            <svg
-              class="w-6 h-6 text-blue-400 flex-shrink-0 mt-0.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="1.5"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <div class="text-sm">
-              <p class="text-blue-300">
-                <strong>Demo Mode:</strong> This is a simulated IPFS CID. The PDF
-                won't load because it wasn't actually uploaded.
-              </p>
-              <p class="text-blue-400/70 mt-1">
-                To enable real IPFS uploads, install the Storacha CLI and set <code
-                  class="bg-blue-500/20 px-1 rounded">DEMO_MODE=false</code
-                >.
-              </p>
-            </div>
-          </div>
-        {/if}
           </div>
         </div>
 

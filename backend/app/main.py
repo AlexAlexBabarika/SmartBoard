@@ -1023,9 +1023,6 @@ async def finalize_nested(proposal_id: int, background_tasks: BackgroundTasks, d
             status_code=500, detail=f"Failed to finalize proposal: {str(e)}")
 
 
-<< << << < HEAD
-
-
 @app.post("/sync/storacha/manifest")
 async def sync_from_manifest_endpoint(
     request: SyncFromManifestRequest,
