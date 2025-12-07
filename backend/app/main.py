@@ -1620,9 +1620,10 @@ async def create_organization(
             }
 
         # Prepare organization data for IPFS
+        sector_value = request.sector.strip() if request.sector and request.sector.strip() else None
         org_data = {
             "name": request.name.strip(),
-            "sector": request.sector.strip() if request.sector else None,
+            "sector": sector_value,
             "creator_wallet": request.creator_wallet.strip(),
             "team_members": normalized_members,
             "member_count": len(normalized_members),
@@ -1644,7 +1645,7 @@ async def create_organization(
         # Save to database
         organization = DBOrganization(
             name=request.name.strip(),
-            sector=request.sector.strip() if request.sector else None,
+            sector=sector_value,
             ipfs_cid=ipfs_cid,
             creator_wallet=request.creator_wallet.strip(),
             team_members=normalized_members,  # Store as JSON array
