@@ -716,16 +716,44 @@
             </div>
           {/if}
 
-        {#if hasVoted}
-          <div
-            class="flex items-start gap-3 p-4 mt-4 rounded-pe-lg bg-green-500/10 border border-green-500/20"
+        <div
+          class="flex items-start gap-3 p-4 mt-4 rounded-pe-lg bg-pe-border/10 border border-pe-border/30"
+        >
+          <svg
+            class="w-6 h-6 text-pe-muted flex-shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+          <div>
+            <p class="text-pe-text font-semibold">
+              Voting disabled
+            </p>
+            <p class="text-pe-muted text-sm">
+              {hasVoted ? "Vote counted." : "Vote not counted (UI only)."}
+            </p>
+          </div>
+        </div>
+
+        <div class="flex gap-4 mt-6">
+          <button
+            class="flex-1 py-4 rounded-pe-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2
+            bg-pe-accent/20 text-pe-accent border border-pe-accent/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled
           >
             <svg
-              class="w-6 h-6 text-green-400 flex-shrink-0"
+              class="h-5 w-5"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
-              stroke-width="1.5"
+              stroke-width="2"
             >
               <path
                 stroke-linecap="round"
@@ -733,74 +761,30 @@
                 d="M5 13l4 4L19 7"
               />
             </svg>
-            <div>
-              <p class="text-green-300 font-semibold">Vote recorded on-chain</p>
-              <p class="text-pe-muted text-sm">
-                You have already voted for this proposal.
-              </p>
-            </div>
-          </div>
-        {:else}
-          <div class="flex gap-4 mt-6">
-            <button
-              class="flex-1 py-4 rounded-pe-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2
-              bg-pe-accent/20 text-pe-accent border border-pe-accent/30 hover:bg-pe-accent hover:text-white
-              disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!wallet.connected || voting || checkingVoteStatus}
-              on:click={() => handleVote(1)}
-            >
-              {#if voting}
-                <div
-                  class="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin"
-                ></div>
-              {:else}
-                <svg
-                  class="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              {/if}
-              Vote YES
-            </button>
+            <span>Vote YES (disabled)</span>
+          </button>
 
-            <button
-              class="flex-1 py-4 rounded-pe-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2
-              bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white
-              disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!wallet.connected || voting || checkingVoteStatus}
-              on:click={() => handleVote(0)}
+          <button
+            class="flex-1 py-4 rounded-pe-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2
+            bg-red-500/20 text-red-400 border border-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled
+          >
+            <svg
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
             >
-              {#if voting}
-                <div
-                  class="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin"
-                ></div>
-              {:else}
-                <svg
-                  class="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              {/if}
-              Vote NO
-            </button>
-          </div>
-        {/if}
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+            <span>Vote NO (disabled)</span>
+          </button>
+        </div>
 
           <div class="relative flex items-center py-6">
             <div class="flex-grow border-t border-pe-border"></div>
