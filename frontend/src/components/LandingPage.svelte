@@ -154,12 +154,12 @@
               <span class="text-pe-accent font-bold text-lg">3</span>
             </div>
             <h3 class="font-display font-semibold text-xl text-pe-text">
-              Community Review
+              Smart Contract
             </h3>
           </div>
           <p class="text-pe-muted text-sm leading-relaxed">
-            DAO members review proposals, ask questions, and discuss
-            opportunities
+            Proposals are executed through secure smart contracts, ensuring
+            transparent and decentralized governance
           </p>
         </div>
 
