@@ -179,7 +179,6 @@
           class="search-input-pe w-full"
           placeholder="Enter organization name"
           required
-          autofocus
         />
       </div>
 
@@ -203,7 +202,7 @@
       <!-- Team Members Section -->
       <div>
         <div class="flex items-center justify-between mb-4">
-          <label class="block text-sm font-medium text-pe-text">
+          <label for="team-member-wallet" class="block text-sm font-medium text-pe-text">
             Team Members <span class="text-pe-accent">*</span>
           </label>
           <span class="text-sm text-pe-muted">
@@ -214,6 +213,7 @@
         <!-- Add Team Member Input -->
         <div class="flex gap-2 mb-4">
           <input
+            id="team-member-wallet"
             type="text"
             bind:this={walletInputElement}
             bind:value={newMemberWallet}

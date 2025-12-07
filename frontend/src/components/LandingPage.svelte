@@ -69,7 +69,7 @@
         <h1
           class="font-display font-bold text-5xl sm:text-6xl lg:text-7xl text-pe-text mb-6 leading-tight drop-shadow-lg"
         >
-          AI-Powered Investment
+          AI-Powered Investment<br />
           <span class="text-pe-accent">Scout DAO</span>
         </h1>
 
@@ -77,8 +77,7 @@
         <p
           class="text-xl sm:text-2xl text-pe-muted max-w-3xl mx-auto mb-10 leading-relaxed drop-shadow-md"
         >
-          Decentralized investment evaluation powered by artificial intelligence.
-          Discover, analyze, and vote on the best investment opportunities.
+          Investment evaluation powered by artificial intelligence and Web3.
         </p>
 
         <!-- CTA Buttons -->
@@ -108,8 +107,7 @@
           How It Works
         </h2>
         <p class="text-lg text-pe-muted max-w-2xl mx-auto">
-          A streamlined process for evaluating and voting on investment
-          opportunities
+          Discover, analyze, and vote on the best investment opportunities.
         </p>
       </div>
 
@@ -160,8 +158,8 @@
             </h3>
           </div>
           <p class="text-pe-muted text-sm leading-relaxed">
-            Proposals are executed through secure smart contracts, ensuring
-            transparent and decentralized governance
+            Proposals are executed and stored through secure smart contracts, ensuring
+            decentralized governance
           </p>
         </div>
 
