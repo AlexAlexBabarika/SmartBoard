@@ -12,6 +12,7 @@ import json
 import argparse
 import logging
 import shutil
+import subprocess
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -134,6 +135,11 @@ def process_startup_data(startup_data: dict, submit_callback=None) -> dict:
             }
         }
     }
+    
+    # Add source field to metadata (for frontend filtering)
+    source = startup_data.get("source")
+    if source:
+        submission["metadata"]["source"] = source
     
     # Add Storacha space to metadata if available
     if storacha_space:

@@ -440,15 +440,23 @@
 
     return fetched.filter((p) => {
       const source = p?.metadata?.source || p?.source;
-      if (lastSelectedSources.length > 0 && source && !lastSelectedSources.includes(source)) {
-        return false;
+      
+      // Filter by source: if we have selected sources and the proposal has a source,
+      // it must match one of the selected sources. If proposal has no source, include it
+      // (it might be from the current search that hasn't been tagged yet, or legacy data)
+      if (lastSelectedSources.length > 0 && source) {
+        if (!lastSelectedSources.includes(source)) {
+          return false;
+        }
       }
 
+      // Filter by timestamp: only show proposals created after search started
+      // (with 5 second buffer to account for timing differences)
       if (respectSearchWindow && searchStartedAt) {
         const created =
           Date.parse(p?.created_at) ||
           Date.parse(p?.metadata?.created_at || p?.metadata?.timestamp || "");
-        if (!Number.isNaN(created) && created < searchStartedAt.getTime() - 2000) {
+        if (!Number.isNaN(created) && created < searchStartedAt.getTime() - 5000) {
           return false;
         }
       }
