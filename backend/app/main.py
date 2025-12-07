@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Query
-from typing import List, Optional
+from typing import Any, List, Optional
 from concurrent.futures import TimeoutError as FuturesTimeout
 from concurrent.futures import ThreadPoolExecutor
 import logging
@@ -945,6 +945,48 @@ async def has_voted(proposal_id: int, voter_address: str, db: Session = Depends(
         )
 
 
+def _parse_on_chain_proposal(on_chain_data: Any):
+    """
+    Convert on-chain proposal string (title|cid|deadline|confidence|yes|no|finalized)
+    into a dict with vote counts and finalized flag.
+    """
+    if not isinstance(on_chain_data, str):
+        return None
+
+    parts = on_chain_data.split('|')
+    if len(parts) < 7:
+        return None
+
+    try:
+        yes_votes = int(parts[4])
+        no_votes = int(parts[5])
+        finalized = bool(int(parts[6]))
+        return {
+            "yes_votes": yes_votes,
+            "no_votes": no_votes,
+            "finalized": finalized
+        }
+    except ValueError:
+        return None
+
+
+def _get_on_chain_vote_state(neo_client: NeoClient, proposal_identifier: int):
+    """
+    Best-effort fetch of on-chain vote tallies for a proposal.
+    Returns None on errors or malformed data.
+    """
+    try:
+        on_chain_data = neo_client.get_proposal(proposal_identifier)
+        return _parse_on_chain_proposal(on_chain_data)
+    except Exception as exc:
+        logger.warning(
+            "Failed to fetch on-chain proposal %s: %s",
+            proposal_identifier,
+            exc
+        )
+        return None
+
+
 @app.post("/finalize")
 async def finalize(request: FinalizeRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
@@ -962,17 +1004,34 @@ async def finalize(request: FinalizeRequest, background_tasks: BackgroundTasks, 
     if proposal.status != "active":
         raise HTTPException(status_code=400, detail="Proposal is not active")
 
+    neo_client = get_neo_client()
+    proposal_identifier = proposal.on_chain_id or request.proposal_id
+
     try:
+        # Refresh local tallies from chain before finalizing to reduce drift
+        on_chain_state = _get_on_chain_vote_state(neo_client, proposal_identifier)
+        if on_chain_state:
+            proposal.yes_votes = on_chain_state["yes_votes"]
+            proposal.no_votes = on_chain_state["no_votes"]
+
         # Finalize on blockchain
-        tx_result = get_neo_client().finalize_proposal(
-            proposal_id=proposal.on_chain_id or request.proposal_id
+        tx_result = neo_client.finalize_proposal(
+            proposal_id=proposal_identifier
         )
 
+        # Pull on-chain tallies after finalization (source of truth when available)
+        post_finalize_state = _get_on_chain_vote_state(neo_client, proposal_identifier) or on_chain_state
+
+        yes_votes = proposal.yes_votes
+        no_votes = proposal.no_votes
+        if post_finalize_state:
+            yes_votes = post_finalize_state["yes_votes"]
+            no_votes = post_finalize_state["no_votes"]
+
         # Determine outcome
-        if proposal.yes_votes > proposal.no_votes:
-            proposal.status = "approved"
-        else:
-            proposal.status = "rejected"
+        proposal.yes_votes = yes_votes
+        proposal.no_votes = no_votes
+        proposal.status = "approved" if yes_votes > no_votes else "rejected"
 
         db.commit()
 
@@ -1026,17 +1085,34 @@ async def finalize_nested(proposal_id: int, background_tasks: BackgroundTasks, d
     if proposal.status != "active":
         raise HTTPException(status_code=400, detail="Proposal is not active")
 
+    neo_client = get_neo_client()
+    proposal_identifier = proposal.on_chain_id or proposal_id
+
     try:
+        # Refresh local tallies from chain before finalizing to reduce drift
+        on_chain_state = _get_on_chain_vote_state(neo_client, proposal_identifier)
+        if on_chain_state:
+            proposal.yes_votes = on_chain_state["yes_votes"]
+            proposal.no_votes = on_chain_state["no_votes"]
+
         # Finalize on blockchain
-        tx_result = get_neo_client().finalize_proposal(
-            proposal_id=proposal.on_chain_id or proposal_id
+        tx_result = neo_client.finalize_proposal(
+            proposal_id=proposal_identifier
         )
 
+        # Pull on-chain tallies after finalization (source of truth when available)
+        post_finalize_state = _get_on_chain_vote_state(neo_client, proposal_identifier) or on_chain_state
+
+        yes_votes = proposal.yes_votes
+        no_votes = proposal.no_votes
+        if post_finalize_state:
+            yes_votes = post_finalize_state["yes_votes"]
+            no_votes = post_finalize_state["no_votes"]
+
         # Determine outcome
-        if proposal.yes_votes > proposal.no_votes:
-            proposal.status = "approved"
-        else:
-            proposal.status = "rejected"
+        proposal.yes_votes = yes_votes
+        proposal.no_votes = no_votes
+        proposal.status = "approved" if yes_votes > no_votes else "rejected"
 
         db.commit()
 

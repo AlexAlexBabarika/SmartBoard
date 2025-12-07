@@ -29,4 +29,13 @@ COPY . .
 # Bring in the built frontend assets
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
+# Install Storacha CLI (requires Node) for real IPFS uploads
+RUN apt-get update && \
+    apt-get install -y curl ca-certificates gnupg && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g @storacha/cli && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+ENV STORACHA_CLI=/usr/local/bin/storacha
+
 CMD ["/app/.venv/bin/uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8080"]

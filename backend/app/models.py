@@ -23,7 +23,7 @@ class Proposal(Base):
     no_votes = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
     deadline = Column(Integer, nullable=True)  # Unix timestamp
-    proposal_metadata = Column(JSON, default={})
+    proposal_metadata = Column(JSON, default=dict)
     tx_hash = Column(String, nullable=True)  # Blockchain transaction hash
     on_chain_id = Column(Integer, nullable=True)  # ID on the smart contract
     

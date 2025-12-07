@@ -9,6 +9,8 @@ BACKEND_HOST = "0.0.0.0"
 BACKEND_PORT = "8080"
 DATABASE_URL = "sqlite:///./data/proposals.db"
 DEMO_MODE = "true"                             # set to false for real mode
+# Use the data volume for Storacha CLI config (Fly Machines allow 1 volume)
+XDG_CONFIG_HOME = "/app/data/.config"
 
 [[services]]
 protocol = "tcp"
