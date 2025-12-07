@@ -1,6 +1,7 @@
 <script>
-  import { createEventDispatcher, onDestroy } from "svelte";
+  import { createEventDispatcher, onDestroy, onMount } from "svelte";
   import { walletStore } from "../stores/wallet.js";
+  import { organizationAPI } from "../lib/api.js";
 
   export let currentView;
 
@@ -10,10 +11,51 @@
 
   let mobileMenuOpen = false;
   let showAddressPrompt = false;
+  let showOrganizationsMenu = false;
   let addressInput = "";
   let emailInput = "";
   let addressInputElement;
   let emailInputElement;
+
+  let userOrganizations = [];
+  let loadingOrganizations = false;
+  let clickOutsideHandler;
+
+  // Load organizations when wallet is connected
+  $: if (wallet.connected && wallet.address) {
+    loadOrganizations();
+  } else {
+    userOrganizations = [];
+  }
+
+  async function loadOrganizations() {
+    if (!wallet.connected || !wallet.address) {
+      userOrganizations = [];
+      return;
+    }
+
+    if (loadingOrganizations) return;
+
+    loadingOrganizations = true;
+    try {
+      userOrganizations = await organizationAPI.getOrganizations(
+        wallet.address,
+      );
+    } catch (error) {
+      console.error("Failed to load organizations:", error);
+      userOrganizations = [];
+    } finally {
+      loadingOrganizations = false;
+    }
+  }
+
+  // Refresh organizations when menu opens
+  function toggleOrganizationsMenu() {
+    showOrganizationsMenu = !showOrganizationsMenu;
+    if (showOrganizationsMenu && wallet.connected) {
+      loadOrganizations();
+    }
+  }
 
   // Lock body scroll when modal is open
   $: if (typeof document !== "undefined") {
@@ -24,10 +66,29 @@
     }
   }
 
+  // Close organizations menu when clicking outside
+  $: if (typeof document !== "undefined") {
+    if (showOrganizationsMenu && !clickOutsideHandler) {
+      clickOutsideHandler = (event) => {
+        const target = event.target;
+        if (!target.closest(".organizations-dropdown")) {
+          showOrganizationsMenu = false;
+        }
+      };
+      document.addEventListener("click", clickOutsideHandler);
+    } else if (!showOrganizationsMenu && clickOutsideHandler) {
+      document.removeEventListener("click", clickOutsideHandler);
+      clickOutsideHandler = null;
+    }
+  }
+
   // Cleanup on destroy
   onDestroy(() => {
     if (typeof document !== "undefined") {
       document.body.style.overflow = "";
+      if (clickOutsideHandler) {
+        document.removeEventListener("click", clickOutsideHandler);
+      }
     }
   });
 
@@ -79,6 +140,17 @@
   function toggleMobileMenu() {
     mobileMenuOpen = !mobileMenuOpen;
   }
+
+  function handleCreateNewTeam() {
+    showOrganizationsMenu = false;
+    handleNavigation("create-team");
+  }
+
+  function handleSelectOrganization(orgId) {
+    showOrganizationsMenu = false;
+    handleNavigation("organizations");
+    // TODO: Navigate to specific organization detail
+  }
 </script>
 
 <!-- Escape key handler for modal - must be at top level -->
@@ -125,13 +197,112 @@
         >
           Q&A
         </button>
-        <button
-          class="nav-link"
-          class:active={currentView === "create-team"}
-          on:click={() => handleNavigation("create-team")}
-        >
-          Create Team
-        </button>
+        <!-- Organizations Dropdown -->
+        <div class="relative organizations-dropdown">
+          <button
+            type="button"
+            class="nav-link"
+            class:active={currentView === "create-team" ||
+              currentView === "organizations" ||
+              showOrganizationsMenu}
+            on:click={toggleOrganizationsMenu}
+            aria-expanded={showOrganizationsMenu}
+            aria-haspopup="true"
+          >
+            Teams
+            <svg
+              class="w-4 h-4 inline-block ml-1 transition-transform"
+              class:rotate-180={showOrganizationsMenu}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+
+          {#if showOrganizationsMenu}
+            <div
+              role="menu"
+              tabindex="-1"
+              class="absolute top-full left-0 mt-2 w-64 bg-pe-panel border border-pe-border rounded-pe-lg shadow-xl z-50 animate-slide-up"
+              on:click|stopPropagation
+            >
+              <div class="p-2">
+                {#if userOrganizations.length > 0}
+                  <div
+                    class="px-3 py-2 text-xs font-semibold text-pe-muted uppercase tracking-wider"
+                  >
+                    Your Organizations
+                  </div>
+                  {#each userOrganizations as org (org.id)}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      on:click={() => handleSelectOrganization(org.id)}
+                      class="w-full text-left px-3 py-2 rounded-pe hover:bg-pe-card transition-colors group"
+                    >
+                      <div class="flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-medium text-pe-text truncate">
+                            {org.name}
+                          </p>
+                          <p class="text-xs text-pe-muted truncate">
+                            {org.sector}
+                          </p>
+                        </div>
+                        <svg
+                          class="w-4 h-4 text-pe-muted opacity-0 group-hover:opacity-100 transition-opacity"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </div>
+                    </button>
+                  {/each}
+                  <div class="border-t border-pe-border my-2"></div>
+                {:else}
+                  <div class="px-3 py-4 text-center">
+                    <p class="text-sm text-pe-muted mb-2">
+                      No organizations yet
+                    </p>
+                  </div>
+                {/if}
+                <button
+                  on:click={handleCreateNewTeam}
+                  class="w-full px-3 py-2 rounded-pe bg-pe-accent text-white hover:bg-pe-accent-hover transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+                >
+                  <svg
+                    class="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  Create New Team
+                </button>
+              </div>
+            </div>
+          {/if}
+        </div>
       </div>
 
       <!-- Right Side: User Icons + Wallet -->
@@ -220,10 +391,10 @@
         </button>
         <button
           class="mobile-nav-link"
-          class:active={currentView === "create-team"}
-          on:click={() => handleNavigation("create-team")}
+          class:active={currentView === "organizations"}
+          on:click={() => handleNavigation("organizations")}
         >
-          Create Team
+          Teams
         </button>
       </div>
     </div>

@@ -17,6 +17,7 @@
     qa: "/qa",
     organizations: "/organizations",
     createOrganization: "/create-organization",
+    "create-team": "/create-organization",
   };
 
   function pathForView(view, proposalId = null) {
@@ -52,7 +53,15 @@
       return;
     }
 
-    const match = Object.entries(viewToPath).find(([, path]) => path === pathname);
+    // Handle create-organization path
+    if (pathname === "/create-organization") {
+      navigateTo("create-team", null, false);
+      return;
+    }
+
+    const match = Object.entries(viewToPath).find(
+      ([, path]) => path === pathname,
+    );
     if (match) {
       navigateTo(match[0], null, false);
       return;
@@ -107,12 +116,12 @@
 
 <div class="min-h-screen bg-pe-bg">
   {#if currentView !== "landing"}
-  <Navbar
-    {currentView}
-    on:navigate={(e) => navigateTo(e.detail.view)}
-    on:connectWallet={connectWallet}
-    on:disconnectWallet={disconnectWallet}
-  />
+    <Navbar
+      {currentView}
+      on:navigate={(e) => navigateTo(e.detail.view)}
+      on:connectWallet={connectWallet}
+      on:disconnectWallet={disconnectWallet}
+    />
   {/if}
 
   <main>
@@ -127,7 +136,7 @@
           on:back={() => navigateTo("dashboard")}
         />
       </div>
-    {:else if currentView === "createOrganization"}
+    {:else if currentView === "createOrganization" || currentView === "create-team"}
       <div class="container mx-auto px-4 py-8 pt-24">
         <CreateOrganization
           on:back={() => navigateTo("dashboard")}

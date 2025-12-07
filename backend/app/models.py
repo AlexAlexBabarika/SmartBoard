@@ -58,3 +58,20 @@ class User(Base):
     def __repr__(self):
         return f"<User(wallet_address='{self.wallet_address}', email='{self.email}')>"
 
+
+class Organization(Base):
+    """Organization model for storing team organizations."""
+    __tablename__ = "organizations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    sector = Column(String, nullable=True)
+    ipfs_cid = Column(String, nullable=True)  # CID of organization data on IPFS
+    creator_wallet = Column(String, nullable=False)  # Wallet address of creator
+    team_members = Column(JSON, nullable=False)  # List of wallet addresses
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<Organization(id={self.id}, name='{self.name}', sector='{self.sector}')>"
+

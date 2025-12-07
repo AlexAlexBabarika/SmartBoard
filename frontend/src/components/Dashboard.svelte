@@ -21,6 +21,14 @@
   let mainContentElement;
   let contentWidth = 1200;
   let contentHeight = 800;
+  let searchSources = ["producthunt"];
+  let proposalLimit = 5;
+  let additionalFields = "";
+  let searching = false;
+  let searchStatus = "";
+  let searchError = null;
+  const MAX_POLL_ATTEMPTS = 10;
+  const POLL_DELAY_MS = 3000;
 
   // Subscribe to stores
   $: filters = $filtersStore;
@@ -204,9 +212,9 @@
     return () => window.removeEventListener("resize", updateDimensions);
   });
 
-  async function loadProposals() {
+  async function loadProposals({ useSampleFallback = true } = {}) {
     const safetyTimeout = setTimeout(() => {
-      if (loading) {
+      if (loading && useSampleFallback && !searching) {
         loading = false;
         // Fall back to sample data if backend unavailable
         proposals = sampleProducts;
@@ -226,20 +234,83 @@
           proposals = fetchedProposals;
         } else {
           // Use sample products if no proposals
-          proposals = sampleProducts;
+          proposals = useSampleFallback ? sampleProducts : [];
         }
       } else {
         // Use sample products
-        proposals = sampleProducts;
+        proposals = useSampleFallback ? sampleProducts : [];
       }
     } catch (e) {
       clearTimeout(safetyTimeout);
       // Use sample data on error
-      proposals = sampleProducts;
+      proposals = useSampleFallback ? sampleProducts : [];
     } finally {
       clearTimeout(safetyTimeout);
       loading = false;
     }
+  }
+
+  async function initiateSearch() {
+    searchError = null;
+    searchStatus = "";
+    proposals = []; // Clear existing proposals immediately so UI shows empty state
+
+    const selectedSources = Array.isArray(searchSources)
+      ? searchSources.filter(Boolean)
+      : [];
+
+    if (selectedSources.length === 0) {
+      searchError = "Select at least one data source.";
+      return;
+    }
+
+    const limit = Math.max(1, Math.min(50, Number(proposalLimit) || 1));
+
+    searching = true;
+    loading = true;
+    proposals = [];
+
+    try {
+      const payload = {
+        sources: selectedSources,
+        limit_per_source: limit,
+        auto_process: true,
+      };
+
+      if (additionalFields.trim()) {
+        payload.additional_fields = additionalFields.trim();
+      }
+
+      const response = await proposalAPI.discoverStartups(payload);
+      searchStatus =
+        response?.message ||
+        "Search started. New proposals will appear once ready.";
+
+      const found = await waitForProposals();
+      if (!found) {
+        searchStatus =
+          "Search started. Waiting for new proposals... (none received yet)";
+      }
+    } catch (e) {
+      searchError = e?.message || "Failed to start discovery.";
+      loading = false;
+    } finally {
+      searching = false;
+    }
+  }
+
+  async function waitForProposals() {
+    for (let attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
+      const fetched = await proposalAPI.getProposals().catch(() => null);
+      if (Array.isArray(fetched) && fetched.length > 0) {
+        proposals = fetched;
+        loading = false;
+        return true;
+      }
+      await new Promise((resolve) => setTimeout(resolve, POLL_DELAY_MS));
+    }
+    loading = false;
+    return false;
   }
 
   function selectProposal(id) {
@@ -577,6 +648,94 @@
               ? "Investment Proposals"
               : filters.category}
           </h1>
+
+          <div class="mt-4 relative z-10">
+            <div class="card-pe p-4 border border-pe-border">
+              <div
+                class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3"
+              >
+                <div>
+                  <h3 class="font-display text-lg text-pe-text">
+                    Initiate new search
+                  </h3>
+                  <p class="text-pe-muted text-sm">
+                    Choose sources and pull fresh proposals. Existing proposals will
+                    be cleared.
+                  </p>
+                </div>
+                <button
+                  class="btn-accent-pe px-4 py-2 disabled:opacity-60"
+                  on:click={initiateSearch}
+                  disabled={searching}
+                >
+                  {searching ? "Searching..." : "Initiate search"}
+                </button>
+              </div>
+
+              <div class="grid gap-4 mt-4 md:grid-cols-2">
+                <div class="space-y-2">
+                  <label class="sidebar-label">Sources</label>
+                  <div class="flex flex-wrap gap-3">
+                    <label class="flex items-center gap-2 text-sm text-pe-text">
+                      <input
+                        type="checkbox"
+                        value="producthunt"
+                        bind:group={searchSources}
+                        class="h-4 w-4 rounded border-pe-border text-pe-accent"
+                        aria-label="Use Product Hunt"
+                      />
+                      Product Hunt
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-pe-text">
+                      <input
+                        type="checkbox"
+                        value="ycombinator"
+                        bind:group={searchSources}
+                        class="h-4 w-4 rounded border-pe-border text-pe-accent"
+                        aria-label="Use Y Combinator"
+                      />
+                      Y Combinator
+                    </label>
+                  </div>
+                  <p class="text-xs text-pe-muted">
+                    Select where the agent should search for startups.
+                  </p>
+                </div>
+
+                <div class="space-y-2">
+                  <label class="sidebar-label">Number of proposals per source</label>
+                  <input
+                    type="number"
+                    class="price-input w-full"
+                    bind:value={proposalLimit}
+                    min="1"
+                    max="50"
+                    aria-label="Number of proposals to fetch"
+                  />
+                  <p class="text-xs text-pe-muted">Between 1 and 50 per source.</p>
+                </div>
+              </div>
+
+              <div class="mt-4 space-y-2">
+                <label class="sidebar-label">Additional startup fields</label>
+                <textarea
+                  class="search-input-pe w-full min-h-[80px]"
+                  placeholder="e.g. sector=AI; stage=Seed; geography=US"
+                  bind:value={additionalFields}
+                  aria-label="Additional startup fields"
+                ></textarea>
+                <p class="text-xs text-pe-muted">
+                  Optional hints the agentic pipeline can use when pulling proposals.
+                </p>
+              </div>
+
+              {#if searchError}
+                <p class="text-red-500 text-sm mt-3">{searchError}</p>
+              {:else if searchStatus}
+                <p class="text-pe-muted text-sm mt-3">{searchStatus}</p>
+              {/if}
+            </div>
+          </div>
 
           <!-- Active Filters -->
           {#if activeFiltersList.length > 0}

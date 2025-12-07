@@ -11,9 +11,10 @@ from .startup_discovery import (
 )
 from .email_service import send_congratulations_email as send_email, send_proposal_outcome_email
 from .neo_client import NeoClient
-from .models import Proposal as DBProposal, Vote as DBVote, User as DBUser
+from .models import Proposal as DBProposal, Vote as DBVote, User as DBUser, Organization as DBOrganization
 from .db import get_db, init_db, SessionLocal
 from .blockchain_listener import BlockchainListener
+from .ipfs_utils import upload_json_to_ipfs
 import os
 import asyncio
 from typing import List, Optional
@@ -209,6 +210,13 @@ class DiscoverStartupsRequest(BaseModel):
 class CreateUserRequest(BaseModel):
     wallet_address: str
     email: Optional[str] = None
+
+
+class CreateOrganizationRequest(BaseModel):
+    name: str
+    sector: Optional[str] = None
+    team_members: List[str]  # List of wallet addresses
+    creator_wallet: str
 
 
 # API Endpoints
@@ -812,6 +820,111 @@ async def create_or_update_user(request: CreateUserRequest, background_tasks: Ba
         logger.error(f"Error creating/updating user: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Failed to create/update user: {str(e)}")
+
+
+@app.post("/organizations")
+async def create_organization(
+    request: CreateOrganizationRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new organization and save it to Storacha/IPFS.
+    """
+    logger.info(
+        f"Creating organization: {request.name}, creator: {request.creator_wallet}, members: {len(request.team_members)}"
+    )
+
+    try:
+        # Prepare organization data for IPFS
+        org_data = {
+            "name": request.name,
+            "sector": request.sector,
+            "creator_wallet": request.creator_wallet,
+            "team_members": request.team_members,
+            "member_count": len(request.team_members),
+            "created_at": datetime.utcnow().isoformat(),
+        }
+
+        # Upload to Storacha/IPFS
+        logger.info("Uploading organization data to Storacha/IPFS...")
+        ipfs_cid = upload_json_to_ipfs(org_data, f"organization_{request.name.replace(' ', '_')}.json")
+
+        # Save to database
+        organization = DBOrganization(
+            name=request.name,
+            sector=request.sector,
+            ipfs_cid=ipfs_cid,
+            creator_wallet=request.creator_wallet,
+            team_members=request.team_members,
+        )
+
+        db.add(organization)
+        db.commit()
+        db.refresh(organization)
+
+        logger.info(
+            f"Organization created: ID={organization.id}, Name={organization.name}, IPFS CID={ipfs_cid}"
+        )
+
+        return {
+            "success": True,
+            "id": organization.id,
+            "name": organization.name,
+            "sector": organization.sector,
+            "ipfs_cid": organization.ipfs_cid,
+            "creator_wallet": organization.creator_wallet,
+            "team_members": organization.team_members,
+            "member_count": len(organization.team_members),
+            "created_at": organization.created_at.isoformat(),
+        }
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating organization: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create organization: {str(e)}"
+        )
+
+
+@app.get("/organizations")
+async def get_organizations(
+    wallet_address: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Get organizations. If wallet_address is provided, returns organizations where the user is a member.
+    """
+    try:
+        if wallet_address:
+            # Get organizations where user is creator or team member
+            organizations = db.query(DBOrganization).filter(
+                (DBOrganization.creator_wallet == wallet_address) |
+                (DBOrganization.team_members.contains([wallet_address]))
+            ).all()
+        else:
+            # Get all organizations
+            organizations = db.query(DBOrganization).all()
+
+        return [
+            {
+                "id": org.id,
+                "name": org.name,
+                "sector": org.sector,
+                "ipfs_cid": org.ipfs_cid,
+                "creator_wallet": org.creator_wallet,
+                "team_members": org.team_members,
+                "member_count": len(org.team_members),
+                "created_at": org.created_at.isoformat(),
+            }
+            for org in organizations
+        ]
+
+    except Exception as e:
+        logger.error(f"Error fetching organizations: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch organizations: {str(e)}"
+        )
 
 
 def send_congratulations_email_task(wallet_address: str, email: str):
